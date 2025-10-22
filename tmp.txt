@@ -1,0 +1,172 @@
+🔬 Typy genotypů (reprezentace)
+
+Reprezentace je zásadní — určuje, jak jsou kandidátní řešení kódována.
+
+1. Binární (bitová řetězová reprezentace)
+    •    Každý gen = 0/1 (bool).
+    •    Typické pro jednoduché optimalizace, klasické GA.
+    •    Použití: funkce, knapsack problém.
+
+2. Reálná čísla (floating-point)
+    •    Geny = hodnoty z intervalu [min, max].
+    •    Časté ve vědeckých/engineering aplikacích.
+    •    Použití: optimalizace funkcí, parametry modelů.
+
+3. Celá čísla (integer)
+    •    Podobné jako reálná, ale diskrétní hodnoty.
+    •    Použití: úlohy, kde má parametr jen určité kroky.
+
+4. Permutace
+    •    Genom je permutace prvků.
+    •    Použití: TSP, scheduling, pořadí operací.
+
+5. Stromy (pro genetické programování)
+    •    Genotyp = strom operátorů a operandů.
+    •    Použití: evoluce programů, symbolická regrese.
+
+6. Grafy / sítě
+    •    Genotyp = graf (např. neurální síť).
+    •    Použití: neuroevoluce (NEAT, HyperNEAT).
+
+7. Hybridní / smíšené
+    •    Kombinace více typů (např. vektor reálných čísel + permutace).
+    •    Použití: složité problémy (logistika, simulace).
+
+⸻
+
+🎲 Selekční strategie
+
+Způsob, jak vybrat rodiče pro křížení.
+
+Klasické
+    1.    Roulette wheel (fitness proportionate)
+Pravděpodobnost výběru ∝ fitness.
+    2.    Stochastic Universal Sampling (SUS)
+Rovnoměrnější varianta rulety.
+    3.    Rank-based selection
+Pravděpodobnost ∝ pořadí místo absolutní hodnoty fitness.
+    4.    Tournament selection
+Vyber k náhodných jedinců, nejlepší postupuje.
+    5.    Truncation selection
+Vyber z nejlepší části populace.
+
+Pokročilé
+    6.    Boltzmann selection
+Pravděpodobnost podle „teploty“ (analogicky k simulated annealing).
+    7.    Fitness sharing / niching
+Zvýhodňuje rozmanitost (udržuje více „niche“).
+    8.    Random selection (baseline)
+Úplně náhodný výběr.
+    9.    Elitism (technicky replacement, ale důležité)
+Nejlepší jedinci vždy přeneseni do další generace.
+
+⸻
+
+🔀 Crossover operátory
+
+Způsob, jak kombinovat geny rodičů → potomci.
+
+Pro binární/vektorové genotypy
+    1.    One-point crossover
+Rozdělení v jednom bodě.
+    2.    Two-point crossover
+Dva body → výměna prostředku.
+    3.    Uniform crossover
+Každý gen náhodně od rodiče 1 nebo 2.
+    4.    Arithmetic crossover
+Lineární kombinace: child = α*parent1 + (1-α)*parent2.
+    5.    Blend crossover (BLX-α)
+Děti vybírají geny z intervalu mezi rodiči.
+    6.    Simulated Binary Crossover (SBX)
+Simuluje vlastnosti binárního křížení u reálných genů.
+
+Pro permutace (TSP, scheduling)
+    7.    Order Crossover (OX)
+Zachovává pořadí a podmnožinu.
+    8.    Partially Mapped Crossover (PMX)
+Udržuje pozice a páry.
+    9.    Cycle Crossover (CX)
+Děti zdědí cykly z rodičů.
+    10.    Edge recombination
+Využívá sousednost prvků (grafové problémy).
+
+Pro stromy (GP)
+    11.    Subtree crossover
+Výměna podstromů mezi rodiči.
+
+⸻
+
+🧬 Mutace
+
+Způsob, jak přidat variabilitu → náhodné změny.
+
+Binární
+    1.    Bit-flip (nejčastější)
+0 → 1, 1 → 0 s určitou pravděpodobností.
+
+Reálné geny
+    2.    Gaussian mutation
+Přidání šumu N(0, σ).
+    3.    Uniform mutation
+Náhodná hodnota v rozsahu.
+    4.    Non-uniform mutation
+Rozsah mutace se zmenšuje v čase (exploration → exploitation).
+
+Permutace
+    5.    Swap mutation
+Prohodí dvě pozice.
+    6.    Insert mutation
+Vloží prvek na jinou pozici.
+    7.    Inversion mutation
+Obrátí pořadí úseku.
+
+Stromy
+    8.    Subtree mutation
+Náhrada podstromu nově vygenerovaným.
+    9.    Hoist mutation
+Podstrom se stane novým kořenem.
+
+Pokročilé
+    10.    Self-adaptive mutation
+Pravděpodobnosti mutací se také vyvíjejí.
+    11.    Polynomial mutation (pro reálné kódy).
+
+⸻
+
+🔁 Replacement strategie (generace → nová populace)
+    1.    Generational replacement
+Celá populace nahrazena novou.
+    2.    Steady-state replacement
+V každém kroku se nahradí jen pár jedinců.
+    3.    (μ, λ)-strategie (z evolučních strategií)
+λ dětí nahrazuje μ rodičů (rodiče přežijí jen skrz děti).
+    4.    (μ+λ)-strategie
+Výběr z rodičů i dětí (elitism).
+    5.    Elitism (nejlepší vždy přežijí)
+Doplněk k ostatním metodám.
+    6.    Age-based replacement
+Starší jedinci jsou vyřazováni.
+    7.    Fitness sharing / crowding
+Snaží se udržovat diverzitu.
+
+⸻
+
+⏹ Termination podmínky
+    1.    Max generations
+    2.    Target fitness threshold
+    3.    Stagnace (no improvement for N generations)
+    4.    Time limit
+    5.    Diverzita pod minimem
+    6.    Hybridní (kombinace výše uvedených)
+
+⸻
+
+🌱 Shrnutí
+
+Tvůj framework by mohl obsahovat core API a tyto skupiny jako implementační moduly:
+    •    Genotypy: binární, reálné, celé, permutace, stromy, grafy, hybridní.
+    •    Selekce: roulette, SUS, rank, tournament, truncation, boltzmann, niching, elitism.
+    •    Crossover: one-/two-point, uniform, arithmetic, BLX-α, SBX, OX, PMX, CX, edge, subtree.
+    •    Mutace: bit-flip, gaussian, uniform, non-uniform, swap, insert, inversion, subtree, hoist, self-adaptive.
+    •    Replacement: generational, steady-state, (μ,λ), (μ+λ), elitism, age-based, crowding.
+    •    Termination: max generations, fitness target, stagnace, čas, diverzita.

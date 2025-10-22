@@ -1,0 +1,36 @@
+[project]
+name = "evolib"
+version = "0.1.0"
+description = "A modular framework for genetic algorithms and genetic programming."
+authors = [
+    { name = "Kamil Volný", email = "kamil.volny@gmail.com" }
+]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = [
+    "numpy>=1.26",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov",
+    "black",
+    "ruff",
+    "mypy",
+]
+
+[tool.coverage.run]
+omit = ["**/test_*.py", "**/__init__.py"]
+
+[tool.pytest.ini_options]
+addopts = "-vv --cov=evolib --cov-report=term-missing --cov-config=pyproject.toml"
+pythonpath = ["src"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
