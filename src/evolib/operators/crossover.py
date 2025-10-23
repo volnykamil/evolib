@@ -183,6 +183,8 @@ class OrderCrossover(CrossoverOperator):
     This method creates two offspring by preserving the relative order of genes from the parents.
     """
     def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):
+        if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
+            raise TypeError("OrderCrossover is only applicable to PermutationGenotype.")
         n = len(p1.genes)
         a, b = sorted(np.random.choice(range(n), 2, replace=False))
         c1 = [-1]*n
@@ -248,6 +250,8 @@ class CycleCrossover(CrossoverOperator):
     through cycles.
     """
     def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):
+        if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
+            raise TypeError("CycleCrossover is only applicable to PermutationGenotype.")
         n = len(p1.genes)
         c1, c2 = np.empty(n, dtype=int), np.empty(n, dtype=int)
         c1[:] = -1
@@ -275,6 +279,8 @@ class EdgeRecombinationCrossover(CrossoverOperator):
     This method creates two offspring by combining the edges of the parents.
     """
     def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):
+        if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
+            raise TypeError("EdgeRecombinationCrossover is only applicable to PermutationGenotype.")
         n = len(p1.genes)
         def build_edge_map(p1, p2):
             edges = {g: set() for g in p1.genes}

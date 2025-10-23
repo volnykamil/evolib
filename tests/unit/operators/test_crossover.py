@@ -113,6 +113,24 @@ def test_invalid_type_combination_raises():
     with pytest.raises(TypeError):
         cx.crossover(p1, p2)
 
+def test_one_point_crossover_wrong_type():
+    p1, p2 = make_integer_genotype(), make_real_genotype()
+    cx = OnePointCrossover()
+    with pytest.raises(TypeError):
+        cx.crossover(p1, p2)
+
+def test_two_point_crossover_wrong_type():
+    p1, p2 = make_integer_genotype(), make_binary_genotype()
+    cx = TwoPointCrossover()
+    with pytest.raises(TypeError):
+        cx.crossover(p1, p2)
+
+def test_uniform_crossover_wrong_type():
+    p1, p2 = make_real_genotype(), make_integer_genotype()
+    cx = UniformCrossover()
+    with pytest.raises(TypeError):
+        cx.crossover(p1, p2)
+
 def test_arithmetic_crossover_wrong_type():
     p1, p2 = make_integer_genotype(), make_integer_genotype()
     cx = ArithmeticCrossover()
@@ -128,5 +146,29 @@ def test_blend_crossover_wrong_type():
 def test_simulated_binary_crossover_wrong_type():
     p1, p2 = make_integer_genotype(), make_integer_genotype()
     cx = SimulatedBinaryCrossover()
+    with pytest.raises(TypeError):
+        cx.crossover(p1, p2)
+
+def test_order_crossover_wrong_type():
+    p1, p2 = make_permutation_genotype(), make_real_genotype()
+    cx = OrderCrossover()
+    with pytest.raises(TypeError):
+        cx.crossover(p1, p2)
+
+def test_partially_mapped_crossover_wrong_type():
+    p1, p2 = make_permutation_genotype(), make_integer_genotype()
+    cx = PartiallyMappedCrossover()
+    with pytest.raises(TypeError):
+        cx.crossover(p1, p2)
+
+def test_cycle_crossover_wrong_type():
+    p1, p2 = make_permutation_genotype(), make_binary_genotype()
+    cx = CycleCrossover()
+    with pytest.raises(TypeError):
+        cx.crossover(p1, p2)
+
+def test_edge_recombination_crossover_wrong_type():
+    p1, p2 = make_permutation_genotype(), make_real_genotype()
+    cx = EdgeRecombinationCrossover()
     with pytest.raises(TypeError):
         cx.crossover(p1, p2)
