@@ -13,6 +13,9 @@ import numpy as np
 
 class Genotype(ABC):
     """Abstract base class for genotypes."""
+    @abstractmethod
+    def __eq__(self, other) -> bool:
+        pass
 
     @abstractmethod
     def copy(self) -> "Genotype":
@@ -27,6 +30,10 @@ class Genotype(ABC):
     def __repr__(self) -> str:
         """Return a string representation of the genotype."""
         return f"{self.__class__.__name__}(shape={self.as_array().shape})"
+    
+    def as_array(self) -> np.ndarray:
+        """Return the genes as a numpy array."""
+        return self.genes
 
 
 # =============================================================================
@@ -48,8 +55,10 @@ class BinaryGenotype(Genotype):
     def __len__(self) -> int:
         return self.genes.size
     
-    def as_array(self) -> np.ndarray:
-        return self.genes
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, BinaryGenotype):
+            return False
+        return np.array_equal(self.genes, other.genes)
     
 
 # =============================================================================
@@ -75,8 +84,10 @@ class RealGenotype(Genotype):
     def __len__(self) -> int:
         return self.genes.size
     
-    def as_array(self) -> np.ndarray:
-        return self.genes
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, RealGenotype):
+            return False
+        return np.array_equal(self.genes, other.genes) and self.bounds == other.bounds
     
 
 # =============================================================================
@@ -101,8 +112,10 @@ class IntegerGenotype(Genotype):
     def __len__(self) -> int:
         return self.genes.size
     
-    def as_array(self) -> np.ndarray:
-        return self.genes
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, IntegerGenotype):
+            return False
+        return np.array_equal(self.genes, other.genes) and self.bounds == other.bounds
     
 
 # =============================================================================
@@ -130,5 +143,7 @@ class PermutationGenotype(Genotype):
     def __len__(self) -> int:
         return self.genes.size
     
-    def as_array(self) -> np.ndarray:
-        return self.genes
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, PermutationGenotype):
+            return False
+        return np.array_equal(self.genes, other.genes)
