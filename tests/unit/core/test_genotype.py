@@ -1,6 +1,5 @@
 import pytest
 from evolib.core.genotype import (
-    Genotype,
     BinaryGenotype,
     RealGenotype,
     IntegerGenotype,
@@ -18,7 +17,7 @@ def test_binary_genotype():
     assert str(genotype) == "BinaryGenotype(shape=(10,))"
 
 def test_binary_genotype_fail():
-    with pytest.raises(AssertionError, match="Genes must be a numpy array of boolean type"):
+    with pytest.raises(TypeError, match="BinaryGenotype genes must be boolean"):
         BinaryGenotype(np.array([2, 3, 4]))
 
 def test_real_genotype():
@@ -32,7 +31,7 @@ def test_real_genotype():
     assert str(genotype) == "RealGenotype(shape=(5,))"
 
 def test_real_genotype_fail():
-    with pytest.raises(AssertionError, match="Genes must be a numpy array of float type"):
+    with pytest.raises(TypeError, match="RealGenotype genes must be float32/float64"):
         RealGenotype(np.array([1, 2, 3], dtype=np.int32))
 
 def test_integer_genotype():
@@ -46,7 +45,7 @@ def test_integer_genotype():
     assert str(genotype) == "IntegerGenotype(shape=(7,))"
 
 def test_integer_genotype_fail():
-    with pytest.raises(AssertionError, match="Genes must be a numpy array of integer type"):
+    with pytest.raises(TypeError, match="IntegerGenotype genes must be integer dtype"):
         IntegerGenotype(np.array([1.5, 2.5, 3.5], dtype=np.float32))
 
 def test_permutation_genotype():
@@ -59,7 +58,7 @@ def test_permutation_genotype():
     assert str(genotype) == "PermutationGenotype(shape=(6,))"
 
 def test_permutation_genotype_fail():
-    with pytest.raises(AssertionError, match="Genes must be a numpy array of integer type."):
+    with pytest.raises(TypeError, match="PermutationGenotype genes must be integer dtype"):
         PermutationGenotype(np.array([0.0, 2.0, 2.0, 3.0]))
-    with pytest.raises(AssertionError, match="Genes must be a permutation of integers from 0 to len\\(genes\\)-1."):
+    with pytest.raises(ValueError, match="Genes must be a permutation of integers from 0 to len\\(genes\\)-1."):
         PermutationGenotype(np.array([0, 2, 2, 3]))

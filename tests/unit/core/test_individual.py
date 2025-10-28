@@ -1,18 +1,17 @@
-from evolib.core.individual import Individual, Population
+from evolib.core.individual import Individual
 from evolib.core.genotype import BinaryGenotype, RealGenotype
 import numpy as np
-import pytest
 
 
 def test_individual_equality():
     g1 = BinaryGenotype.random(10)
     g2 = BinaryGenotype.random(10)
     
-    ind1 = Individual(genotype=g1, age=5, fitness_score=10.0)
-    ind2 = Individual(genotype=g1.copy(), age=5, fitness_score=10.0)
-    ind3 = Individual(genotype=g2, age=5, fitness_score=10.0)
-    ind4 = Individual(genotype=g1, age=6, fitness_score=10.0)
-    ind5 = Individual(genotype=g1, age=5, fitness_score=12.0)
+    ind1 = Individual(genotype=g1, age=5, fitness=10.0)
+    ind2 = Individual(genotype=g1.copy(), age=5, fitness=10.0)
+    ind3 = Individual(genotype=g2, age=5, fitness=10.0)
+    ind4 = Individual(genotype=g1, age=6, fitness=10.0)
+    ind5 = Individual(genotype=g1, age=5, fitness=12.0)
     
     assert ind1 == ind2, "Individuals with same attributes should be equal"
     assert ind1 != ind3, "Individuals with different genotypes should not be equal"
@@ -21,7 +20,7 @@ def test_individual_equality():
 
 def test_individual_copy():
     g1 = RealGenotype.random(10, (0.0, 1.0))
-    ind1 = Individual(genotype=g1, age=3, fitness_score=15.0)
+    ind1 = Individual(genotype=g1, age=3, fitness=15.0)
     ind2 = ind1.copy()
     
     assert ind1 == ind2, "Copied individual should be equal to the original"

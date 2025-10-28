@@ -7,7 +7,7 @@ This module defines various genotype representations used in evolutionary algori
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, Tuple
+from typing import Tuple
 import numpy as np
 
 
@@ -41,8 +41,11 @@ class Genotype(ABC):
 # =============================================================================
 class BinaryGenotype(Genotype):
     def __init__(self, genes: np.ndarray):
-        assert genes.dtype == np.bool_, "Genes must be a numpy array of boolean type."
-        self.genes = genes
+        if genes.dtype != np.bool_:
+            raise TypeError(
+                f"BinaryGenotype genes must be boolean (np.bool_), got dtype={genes.dtype}."
+            )
+        self.genes: np.ndarray = genes
 
     @classmethod
     def random(cls, length: int, p: float = 0.5) -> "BinaryGenotype":
@@ -67,9 +70,14 @@ class BinaryGenotype(Genotype):
 class RealGenotype(Genotype):
     """Genotype with real-valued genes."""
     def __init__(self, genes: np.ndarray, bounds: Tuple[float, float] = (0.0, 1.0)):
-        assert genes.dtype in (np.float32, np.float64), "Genes must be a numpy array of float type."
-        self.genes = genes
-        self.bounds = bounds
+        if genes.dtype not in (np.float32, np.float64):
+            raise TypeError(
+                f"RealGenotype genes must be float32/float64, got dtype={genes.dtype}."
+            )
+        if bounds[0] >= bounds[1]:
+            raise ValueError(f"Invalid bounds {bounds}: low must be < high.")
+        self.genes: np.ndarray = genes
+        self.bounds: Tuple[float, float] = bounds
 
     @classmethod
     def random(cls, length: int, bounds: Tuple[float, float] = (0.0, 1.0)) -> "RealGenotype":
@@ -96,9 +104,14 @@ class RealGenotype(Genotype):
 class IntegerGenotype(Genotype):
     """Genotype with integer-valued genes."""
     def __init__(self, genes: np.ndarray, bounds: Tuple[int, int] = (0, 10)):
-        assert np.issubdtype(genes.dtype, np.integer), "Genes must be a numpy array of integer type."
-        self.genes = genes
-        self.bounds = bounds
+        if not np.issubdtype(genes.dtype, np.integer):
+            raise TypeError(
+                f"IntegerGenotype genes must be integer dtype, got dtype={genes.dtype}."
+            )
+        if bounds[0] > bounds[1]:
+            raise ValueError(f"Invalid bounds {bounds}: low must be <= high.")
+        self.genes: np.ndarray = genes
+        self.bounds: Tuple[int, int] = bounds
 
     @classmethod
     def random(cls, length: int, bounds: Tuple[int, int] = (0, 10)) -> "IntegerGenotype":
@@ -117,6 +130,11 @@ class IntegerGenotype(Genotype):
             return False
         return np.array_equal(self.genes, other.genes) and self.bounds == other.bounds
     
+    def __sub__(self, other: "IntegerGenotype"):
+        if not isinstance(other, IntegerGenotype):
+            raise TypeError("Subtraction only supported between IntegerGenotype instances.")
+        return self.genes - other.genes
+    
 
 # =============================================================================
 # PermutationGenotype
@@ -124,13 +142,20 @@ class IntegerGenotype(Genotype):
 class PermutationGenotype(Genotype):
     """Genotype representing a permutation of integers."""
     def __init__(self, genes: np.ndarray):
-        assert np.issubdtype(genes.dtype, np.integer), "Genes must be a numpy array of integer type."
+        if not np.issubdtype(genes.dtype, np.integer):
+            raise TypeError(
+                f"PermutationGenotype genes must be integer dtype, got dtype={genes.dtype}."
+            )
         unique_genes = np.unique(genes)
         expected_genes = np.arange(len(genes))
-        assert len(unique_genes) == len(genes) and np.array_equal(np.sort(unique_genes), expected_genes), (
-            "Genes must be a permutation of integers from 0 to len(genes)-1."
-        )
-        self.genes = genes.astype(np.int32)
+        if not (
+            len(unique_genes) == len(genes)
+            and np.array_equal(np.sort(unique_genes), expected_genes)
+        ):
+            raise ValueError(
+                "Genes must be a permutation of integers from 0 to len(genes)-1."
+            )
+        self.genes: np.ndarray = genes.astype(np.int32)
 
     @classmethod
     def random(cls, length: int) -> "PermutationGenotype":
