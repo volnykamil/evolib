@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 dependencies = [
+    "mypy>=1.18.2",
     "numpy>=1.26",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
@@ -31,6 +32,42 @@ omit = ["**/test_*.py", "**/__init__.py"]
 [tool.pytest.ini_options]
 addopts = "-vv --cov=evolib --cov-report=term-missing --cov-config=pyproject.toml"
 pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+select = ["E", "F", "I", "B", "UP", "SIM", "PL", "RUF"]
+ignore = ["E203", "PLR2004"]
+exclude = [".venv", "build", "dist", "evolib.egg-info"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.10"
+# Start permissive; tighten later.
+strict = false
+warn_unused_configs = true
+show_error_codes = true
+pretty = true
+exclude = ["build/", "dist/", "evolib.egg-info/"]
+files = ["src"]
+mypy_path = ["src"]
+namespace_packages = true
+
+[[tool.mypy.overrides]]
+module = ["evolib.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+no_implicit_optional = true
+warn_return_any = false
+warn_unreachable = false
 
 [build-system]
 requires = ["setuptools", "wheel"]

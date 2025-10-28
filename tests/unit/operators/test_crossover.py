@@ -4,24 +4,26 @@ Unit tests for evolib.operators.crossover
 
 import numpy as np
 import pytest
+
 from evolib.core.genotype import (
     BinaryGenotype,
     IntegerGenotype,
-    RealGenotype,
     PermutationGenotype,
+    RealGenotype,
 )
 from evolib.operators.crossover import (
-    OnePointCrossover,
-    TwoPointCrossover,
-    UniformCrossover,
     ArithmeticCrossover,
     BlendCrossover,
-    SimulatedBinaryCrossover,
-    OrderCrossover,
-    PartiallyMappedCrossover,
     CycleCrossover,
     EdgeRecombinationCrossover,
+    OnePointCrossover,
+    OrderCrossover,
+    PartiallyMappedCrossover,
+    SimulatedBinaryCrossover,
+    TwoPointCrossover,
+    UniformCrossover,
 )
+
 
 # -----------------------------------------------------------------------------
 # Helper factories
@@ -29,14 +31,18 @@ from evolib.operators.crossover import (
 def make_binary_genotype(n=10):
     return BinaryGenotype.random(n)
 
+
 def make_integer_genotype(n=10, low=0, high=10):
     return IntegerGenotype.random(n, (low, high))
+
 
 def make_real_genotype(n=10, low=-1.0, high=1.0):
     return RealGenotype.random(n, (low, high))
 
+
 def make_permutation_genotype(n=10):
     return PermutationGenotype.random(n)
+
 
 # -----------------------------------------------------------------------------
 # Generic checks
@@ -52,6 +58,7 @@ def check_offspring_type_and_shape(p1, p2, c1, c2):
 # Binary / Integer / Real crossovers
 # =============================================================================
 
+
 @pytest.mark.parametrize("cls", [OnePointCrossover, TwoPointCrossover, UniformCrossover])
 def test_basic_vector_crossovers(cls):
     for maker in [make_binary_genotype, make_integer_genotype, make_real_genotype]:
@@ -65,6 +72,7 @@ def test_basic_vector_crossovers(cls):
 # Real-valued crossovers
 # =============================================================================
 
+
 def test_arithmetic_crossover():
     p1, p2 = make_real_genotype(), make_real_genotype()
     cx = ArithmeticCrossover(alpha=0.5)
@@ -74,11 +82,13 @@ def test_arithmetic_crossover():
     assert np.all((c1.genes >= low) & (c1.genes <= high))
     assert np.all((c2.genes >= low) & (c2.genes <= high))
 
+
 def test_blend_crossover():
     p1, p2 = make_real_genotype(), make_real_genotype()
     cx = BlendCrossover(alpha=0.5)
     c1, c2 = cx.crossover(p1, p2)
     check_offspring_type_and_shape(p1, p2, c1, c2)
+
 
 def test_simulated_binary_crossover():
     p1, p2 = make_real_genotype(), make_real_genotype()
@@ -91,7 +101,10 @@ def test_simulated_binary_crossover():
 # Permutation crossovers
 # =============================================================================
 
-@pytest.mark.parametrize("cls", [OrderCrossover, PartiallyMappedCrossover, CycleCrossover, EdgeRecombinationCrossover])
+
+@pytest.mark.parametrize(
+    "cls", [OrderCrossover, PartiallyMappedCrossover, CycleCrossover, EdgeRecombinationCrossover]
+)
 def test_permutation_crossovers(cls):
     p1, p2 = make_permutation_genotype(), make_permutation_genotype()
     cx = cls()
@@ -107,11 +120,13 @@ def test_permutation_crossovers(cls):
 # Type safety
 # =============================================================================
 
+
 def test_invalid_type_combination_raises():
     p1, p2 = make_binary_genotype(), make_real_genotype()
     cx = OnePointCrossover()
     with pytest.raises(TypeError):
         cx.crossover(p1, p2)
+
 
 def test_one_point_crossover_wrong_type():
     p1, p2 = make_integer_genotype(), make_real_genotype()
@@ -119,11 +134,13 @@ def test_one_point_crossover_wrong_type():
     with pytest.raises(TypeError):
         cx.crossover(p1, p2)
 
+
 def test_two_point_crossover_wrong_type():
     p1, p2 = make_integer_genotype(), make_binary_genotype()
     cx = TwoPointCrossover()
     with pytest.raises(TypeError):
         cx.crossover(p1, p2)
+
 
 def test_uniform_crossover_wrong_type():
     p1, p2 = make_real_genotype(), make_integer_genotype()
@@ -131,11 +148,13 @@ def test_uniform_crossover_wrong_type():
     with pytest.raises(TypeError):
         cx.crossover(p1, p2)
 
+
 def test_arithmetic_crossover_wrong_type():
     p1, p2 = make_integer_genotype(), make_integer_genotype()
     cx = ArithmeticCrossover()
     with pytest.raises(TypeError):
         cx.crossover(p1, p2)
+
 
 def test_blend_crossover_wrong_type():
     p1, p2 = make_integer_genotype(), make_integer_genotype()
@@ -143,11 +162,13 @@ def test_blend_crossover_wrong_type():
     with pytest.raises(TypeError):
         cx.crossover(p1, p2)
 
+
 def test_simulated_binary_crossover_wrong_type():
     p1, p2 = make_integer_genotype(), make_integer_genotype()
     cx = SimulatedBinaryCrossover()
     with pytest.raises(TypeError):
         cx.crossover(p1, p2)
+
 
 def test_order_crossover_wrong_type():
     p1, p2 = make_permutation_genotype(), make_real_genotype()
@@ -155,17 +176,20 @@ def test_order_crossover_wrong_type():
     with pytest.raises(TypeError):
         cx.crossover(p1, p2)
 
+
 def test_partially_mapped_crossover_wrong_type():
     p1, p2 = make_permutation_genotype(), make_integer_genotype()
     cx = PartiallyMappedCrossover()
     with pytest.raises(TypeError):
         cx.crossover(p1, p2)
 
+
 def test_cycle_crossover_wrong_type():
     p1, p2 = make_permutation_genotype(), make_binary_genotype()
     cx = CycleCrossover()
     with pytest.raises(TypeError):
         cx.crossover(p1, p2)
+
 
 def test_edge_recombination_crossover_wrong_type():
     p1, p2 = make_permutation_genotype(), make_real_genotype()

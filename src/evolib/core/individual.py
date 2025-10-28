@@ -1,11 +1,13 @@
 """Core individual abstraction and population factory utilities.
 
 The :class:`Individual` couples a genotype with evolutionary metadata
-(fitness, age, etc.). 
+(fitness, age, etc.).
 """
 
+from collections.abc import Callable, Iterable
+from typing import NewType
+
 from evolib.core.genotype import Genotype
-from typing import NewType, Callable, Iterable
 
 Population = NewType("Population", list["Individual"])
 
@@ -23,7 +25,7 @@ class Individual:
         Raw fitness value. Higher usually means better (problem dependent).
     """
 
-    __slots__ = ("genotype", "age", "fitness")
+    __slots__ = ("age", "fitness", "genotype")
 
     def __init__(self, genotype: Genotype, age: int = 0, fitness: float = 0.0) -> None:
         if age < 0:
@@ -57,6 +59,9 @@ class Individual:
             age=self.age,
             fitness=self.fitness,
         )
+    
+    def __hash__(self):
+        return hash((self.genotype, self.age, self.fitness))
 
     # ------------------------------------------------------------------
     # Population utilities

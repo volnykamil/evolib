@@ -20,17 +20,21 @@ Each strategy implements the `replace` method:
     replace(parents, offspring, population_size) -> new_population
 """
 
-from evolib.core.individual import Population, Individual
-from abc import ABC, abstractmethod
-import numpy as np
 import warnings
+from abc import ABC, abstractmethod
+
+import numpy as np
+
+from evolib.core.individual import Individual, Population
 
 
 class ReplacementStrategy(ABC):
     """Abstract base class for replacement strategies."""
 
     @abstractmethod
-    def replace(self, parents: Population, offspring: Population, population_size: int) -> Population:
+    def replace(
+        self, parents: Population, offspring: Population, population_size: int
+    ) -> Population:
         """
         Replace individuals in the population.
 
@@ -53,9 +57,11 @@ class GenerationalReplacement(ReplacementStrategy):
     - Maximizes exploration but may lose good solutions if elitism is not used.
     """
 
-    def replace(self, parents: Population, offspring: Population, population_size: int) -> Population:
+    def replace(
+        self, parents: Population, offspring: Population, population_size: int
+    ) -> Population:
         return Population(offspring[:population_size])
-    
+
 
 class SteadyStateReplacement(ReplacementStrategy):
     """
@@ -74,11 +80,13 @@ class SteadyStateReplacement(ReplacementStrategy):
         """
         self.num_replacements = num_replacements
 
-    def replace(self, parents: Population, offspring: Population, population_size: int) -> Population:
+    def replace(
+        self, parents: Population, offspring: Population, population_size: int
+    ) -> Population:
         parents = sorted(parents, key=lambda ind: ind.fitness, reverse=True)
         offspring = sorted(offspring, key=lambda ind: ind.fitness, reverse=True)
         # Replace worst parents with best offspring
-        new_population = parents[:-self.num_replacements] + offspring[:self.num_replacements]
+        new_population = parents[: -self.num_replacements] + offspring[: self.num_replacements]
         return new_population[:population_size]
 
 
@@ -111,7 +119,9 @@ class MuLambdaReplacement(ReplacementStrategy):
         self.mu = mu
         self.lambda_ = lambda_
 
-    def replace(self, parents: Population, offspring: Population, population_size: int) -> Population:
+    def replace(
+        self, parents: Population, offspring: Population, population_size: int
+    ) -> Population:
         if population_size <= 0:
             raise ValueError("population_size must be > 0")
         if len(offspring) != self.lambda_:
@@ -151,12 +161,15 @@ class MuPlusLambdaReplacement(ReplacementStrategy):
         self.mu = mu
         self.lambda_ = lambda_
 
-    def replace(self, parents: Population, offspring: Population, population_size: int) -> Population:
+    def replace(
+        self, parents: Population, offspring: Population, population_size: int
+    ) -> Population:
         if population_size <= 0:
             raise ValueError("population_size must be > 0")
         if len(offspring) != self.lambda_:
             warnings.warn(
-                f"MuPlusLambdaReplacement: Expected {self.lambda_} offspring, got {len(offspring)}.",
+                f"MuPlusLambdaReplacement: Expected {self.lambda_} offspring, "
+                f"got {len(offspring)}.",
                 stacklevel=2,
             )
         combined = list(parents) + list(offspring)
@@ -176,7 +189,9 @@ class ElitismReplacement(ReplacementStrategy):
     def __init__(self, elite_size: int = 1):
         self.elite_size = elite_size
 
-    def replace(self, parents: Population, offspring: Population, population_size: int) -> Population:
+    def replace(
+        self, parents: Population, offspring: Population, population_size: int
+    ) -> Population:
         if population_size <= 0:
             raise ValueError("population_size must be > 0")
         parents_sorted = sorted(parents, key=lambda ind: ind.fitness, reverse=True)
@@ -196,13 +211,15 @@ class AgeBasedReplacement(ReplacementStrategy):
     - Helps maintain evolutionary diversity.
     """
 
-    def replace(self, parents: Population, offspring: Population, population_size: int) -> Population:
+    def replace(
+        self, parents: Population, offspring: Population, population_size: int
+    ) -> Population:
         if population_size <= 0:
             raise ValueError("population_size must be > 0")
         combined = parents + offspring
         combined = sorted(combined, key=lambda ind: ind.age)
         return Population(combined[:population_size])
-    
+
 
 class FitnessSharingReplacement(ReplacementStrategy):
     """
@@ -221,7 +238,9 @@ class FitnessSharingReplacement(ReplacementStrategy):
             return 1 - (distance / self.sigma_share) ** self.alpha
         return 0
 
-    def replace(self, parents: Population, offspring: Population, population_size: int) -> Population:
+    def replace(
+        self, parents: Population, offspring: Population, population_size: int
+    ) -> Population:
         if population_size <= 0:
             raise ValueError("population_size must be > 0")
         combined: list[Individual] = list(parents) + list(offspring)

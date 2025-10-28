@@ -16,11 +16,13 @@ from evolib.core.genotype import (
     PermutationGenotype,
 )
 
+
 # =============================================================================
 # Base class
 # =============================================================================
 class CrossoverOperator(ABC):
     """Abstract base class for crossover operators."""
+
     @abstractmethod
     def crossover(self, parent1: Genotype, parent2: Genotype) -> tuple[Genotype, Genotype]:
         """Return two offspring created from parent1 and parent2."""
@@ -36,6 +38,7 @@ class OnePointCrossover(CrossoverOperator):
 
     This method creates two offspring by combining the genes of the parents at a single crossover point.
     """
+
     def crossover(self, p1: Genotype, p2: Genotype):
         if type(p1) is not type(p2):
             raise TypeError("Parents must be of the same genotype type.")
@@ -51,9 +54,10 @@ class OnePointCrossover(CrossoverOperator):
 class TwoPointCrossover(CrossoverOperator):
     """
     Performs two-point crossover.
-    
+
     This method creates two offspring by combining the genes of the parents between two crossover points.
     """
+
     def crossover(self, p1: Genotype, p2: Genotype):
         if type(p1) is not type(p2):
             raise TypeError("Parents must be of the same genotype type.")
@@ -70,10 +74,11 @@ class TwoPointCrossover(CrossoverOperator):
 class UniformCrossover(CrossoverOperator):
     """
     Performs uniform crossover with a mixing probability.
-    
+
     This method creates two offspring by randomly selecting genes from each parent
     based on the specified probability.
     """
+
     def __init__(self, probability: float = 0.5):
         self.probability = probability
 
@@ -95,10 +100,11 @@ class UniformCrossover(CrossoverOperator):
 class ArithmeticCrossover(CrossoverOperator):
     """
     Performs arithmetic crossover: child = α*p1 + (1−α)*p2.
-    
+
     This method creates two offspring by linearly combining the genes of the parents
     using a specified alpha parameter.
     """
+
     def __init__(self, alpha: float = 0.5):
         self.alpha = alpha
 
@@ -116,10 +122,11 @@ class ArithmeticCrossover(CrossoverOperator):
 class BlendCrossover(CrossoverOperator):
     """
     Implements BLX-α (blend) crossover.
-    
+
     This method creates two offspring by sampling genes from an extended range
     around the parents' genes, controlled by the alpha parameter.
     """
+
     def __init__(self, alpha: float = 0.5):
         self.alpha = alpha
 
@@ -141,10 +148,11 @@ class BlendCrossover(CrossoverOperator):
 class SimulatedBinaryCrossover(CrossoverOperator):
     """
     Implements SBX (Simulated Binary Crossover).
-    
+
     This method creates two offspring by simulating the behavior of single-point crossover
     on binary-encoded genotypes, adapted for real-valued genes.
     """
+
     def __init__(self, eta: float = 15.0, probability: float = 1.0):
         self.eta = eta
         self.probability = probability
@@ -182,20 +190,21 @@ class OrderCrossover(CrossoverOperator):
 
     This method creates two offspring by preserving the relative order of genes from the parents.
     """
+
     def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):
         if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
             raise TypeError("OrderCrossover is only applicable to PermutationGenotype.")
         n = len(p1.genes)
         a, b = sorted(np.random.choice(range(n), 2, replace=False))
-        c1 = [-1]*n
-        c2 = [-1]*n
+        c1 = [-1] * n
+        c2 = [-1] * n
         c1[a:b], c2[a:b] = p1.genes[a:b], p2.genes[a:b]
         fill1 = [g for g in p2.genes if g not in c1]
         fill2 = [g for g in p1.genes if g not in c2]
         idxs = list(range(0, a)) + list(range(b, n))
-        for i, g in zip(idxs, fill1): 
+        for i, g in zip(idxs, fill1):
             c1[i] = g
-        for i, g in zip(idxs, fill2): 
+        for i, g in zip(idxs, fill2):
             c2[i] = g
         return PermutationGenotype(np.array(c1)), PermutationGenotype(np.array(c2))
 
@@ -203,7 +212,7 @@ class OrderCrossover(CrossoverOperator):
 class PartiallyMappedCrossover(CrossoverOperator):
     """
     Implements Partially Mapped Crossover (PMX) for permutation genotypes.
-    
+
     This method creates two offspring by exchanging segments between parents
     and resolving conflicts through mapping.
     """
@@ -245,10 +254,11 @@ class PartiallyMappedCrossover(CrossoverOperator):
 class CycleCrossover(CrossoverOperator):
     """
     Implements Cycle Crossover (CX).
-    
+
     This method creates two offspring by preserving the position of genes from the parents
     through cycles.
     """
+
     def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):
         if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
             raise TypeError("CycleCrossover is only applicable to PermutationGenotype.")
@@ -278,10 +288,12 @@ class EdgeRecombinationCrossover(CrossoverOperator):
 
     This method creates two offspring by combining the edges of the parents.
     """
+
     def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):
         if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
             raise TypeError("EdgeRecombinationCrossover is only applicable to PermutationGenotype.")
         n = len(p1.genes)
+
         def build_edge_map(p1, p2):
             edges = {g: set() for g in p1.genes}
             for perm in [p1.genes, p2.genes]:

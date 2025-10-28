@@ -170,3 +170,10 @@ Tvůj framework by mohl obsahovat core API a tyto skupiny jako implementační m
     •    Mutace: bit-flip, gaussian, uniform, non-uniform, swap, insert, inversion, subtree, hoist, self-adaptive.
     •    Replacement: generational, steady-state, (μ,λ), (μ+λ), elitism, age-based, crowding.
     •    Termination: max generations, fitness target, stagnace, čas, diverzita.
+
+Follow-Up Suggestions
+Add mypy and ruff CI enforcement.
+Introduce RNG injection for reproducibility in operators.
+Consider dataclasses with slots for Individual.
+Expand genotype distance strategy (e.g., normalized distances) across sharing operators.
+Add engine orchestration (pipeline) and integration tests.

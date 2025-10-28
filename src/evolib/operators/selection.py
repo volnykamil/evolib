@@ -17,14 +17,19 @@ Where:
 Author: EvoLab project
 """
 
+from collections.abc import Sequence
+
 import numpy as np
-from evolib.core.individual import Population, Individual
-from typing import Sequence
+
+from evolib.core.individual import Individual, Population
 
 
 class SelectionStrategy:
     """Base class for all selection strategies."""
-    def select(self, population: Population, n_parents: int) -> Population:  # pragma: no cover (interface)
+
+    def select(
+        self, population: Population, n_parents: int
+    ) -> Population:  # pragma: no cover (interface)
         raise NotImplementedError("SelectionStrategy must implement select().")
 
     # Common input validation helper
@@ -41,14 +46,12 @@ class RouletteWheelSelection(SelectionStrategy):
     Roulette Wheel (Fitness-Proportionate) Selection.
     Each individual's probability of being selected is proportional to its fitness.
     """
+
     def select(self, population: Population, n_parents: int) -> Population:
         self._validate(population, n_parents)
         fitness = np.array([ind.fitness for ind in population], dtype=float)
         total_fitness = float(np.sum(fitness))
-        if total_fitness <= 0.0:
-            probs = np.full(len(population), 1.0 / len(population))
-        else:
-            probs = fitness / total_fitness
+        probs = np.full(len(population), 1.0 / len(population)) if total_fitness <= 0.0 else fitness / total_fitness
         selected_indices = np.random.choice(len(population), size=n_parents, replace=True, p=probs)
         return Population([population[i] for i in selected_indices])
 
@@ -58,14 +61,12 @@ class StochasticUniversalSampling(SelectionStrategy):
     Stochastic Universal Sampling (SUS).
     Provides more even selection pressure than standard roulette wheel.
     """
+
     def select(self, population: Population, n_parents: int) -> Population:
         self._validate(population, n_parents)
         fitness = np.array([ind.fitness for ind in population], dtype=float)
         total_fitness = float(np.sum(fitness))
-        if total_fitness <= 0.0:
-            probs = np.full(len(population), 1.0 / len(population))
-        else:
-            probs = fitness / total_fitness
+        probs = np.full(len(population), 1.0 / len(population)) if total_fitness <= 0.0 else fitness / total_fitness
         cumulative = np.cumsum(probs)
         step = 1.0 / n_parents
         start = np.random.uniform(0.0, step)
@@ -84,6 +85,7 @@ class RankSelection(SelectionStrategy):
     Rank-Based Selection.
     Selection probability depends on sorted order (rank), not raw fitness.
     """
+
     def select(self, population: Population, n_parents: int) -> Population:
         self._validate(population, n_parents)
         fitness = np.array([ind.fitness for ind in population], dtype=float)
@@ -98,6 +100,7 @@ class TournamentSelection(SelectionStrategy):
     Tournament Selection.
     Randomly select k individuals and pick the one with highest fitness.
     """
+
     def __init__(self, k: int = 3):
         self.k = k
 
@@ -120,6 +123,7 @@ class TruncationSelection(SelectionStrategy):
     Truncation Selection.
     Select only from the top fraction of the population.
     """
+
     def __init__(self, fraction: float = 0.5):
         self.fraction = fraction
 
@@ -140,6 +144,7 @@ class BoltzmannSelection(SelectionStrategy):
     Selection probability follows Boltzmann distribution based on "temperature".
     Higher temperature = more exploration.
     """
+
     def __init__(self, temperature: float = 1.0):
         self.temperature = temperature
 
@@ -161,6 +166,7 @@ class FitnessSharingSelection(SelectionStrategy):
     Fitness Sharing / Niching.
     Promotes diversity by penalizing individuals similar to others.
     """
+
     def __init__(self, sigma_share: float = 1.0):
         self.sigma_share = sigma_share
 
@@ -169,7 +175,8 @@ class FitnessSharingSelection(SelectionStrategy):
         if self.sigma_share <= 0:
             raise ValueError("sigma_share must be > 0")
         fitness = np.array([ind.fitness for ind in population], dtype=float)
-        # Compute niche counts (using fitness distance; could extend to genotype distance if available)
+        # Compute niche counts (using fitness distance
+        # could extend to genotype distance if available)
         niche_counts = np.zeros(len(population))
         for i in range(len(population)):
             for j in range(len(population)):
@@ -189,6 +196,7 @@ class RandomSelection(SelectionStrategy):
     Random Selection.
     Baseline random selection (no dependence on fitness).
     """
+
     def select(self, population: Population, n_parents: int) -> Population:
         self._validate(population, n_parents)
         chosen = list(np.random.choice(population, size=n_parents, replace=True))
@@ -200,6 +208,7 @@ class Elitism(SelectionStrategy):
     Elitism.
     Always preserves the top `elite_size` individuals.
     """
+
     def __init__(self, elite_size: int = 1):
         self.elite_size = elite_size
 

@@ -1,18 +1,19 @@
 import numpy as np
 import pytest
+
+from evolib.core.individual import Individual, Population
 from evolib.operators.selection import (
-    SelectionStrategy,
-    RouletteWheelSelection,
-    StochasticUniversalSampling,
-    RankSelection,
-    TournamentSelection,
-    TruncationSelection,
     BoltzmannSelection,
+    Elitism,
     FitnessSharingSelection,
     RandomSelection,
-    Elitism
+    RankSelection,
+    RouletteWheelSelection,
+    SelectionStrategy,
+    StochasticUniversalSampling,
+    TournamentSelection,
+    TruncationSelection,
 )
-from evolib.core.individual import Individual, Population
 
 
 @pytest.fixture
@@ -99,9 +100,12 @@ def test_selection_output_type_consistency(sample_population):
         BoltzmannSelection(),
         FitnessSharingSelection(),
         RandomSelection(),
-        Elitism()
+        Elitism(),
     ]
     for strat in strategies:
-        result = strat.select(sample_population, 3) \
-                 if not isinstance(strat, Elitism) else strat.select(sample_population)
+        result = (
+            strat.select(sample_population, 3)
+            if not isinstance(strat, Elitism)
+            else strat.select(sample_population)
+        )
         assert all(isinstance(ind, Individual) for ind in result)

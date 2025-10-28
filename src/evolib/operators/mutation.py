@@ -17,11 +17,13 @@ from evolib.core.genotype import (
     PermutationGenotype,
 )
 
+
 # =============================================================================
 # Base class
 # =============================================================================
 class MutationOperator(ABC):
     """Abstract base class for mutation operators."""
+
     @abstractmethod
     def mutate(self, genotype: Genotype) -> Genotype:
         """Return a mutated copy of the genotype."""
@@ -38,6 +40,7 @@ class BitFlipMutation(MutationOperator):
     Parameters:
         probability (float): Probability of flipping each bit.
     """
+
     def __init__(self, probability: float = 0.01):
         self.probability = probability
 
@@ -61,6 +64,7 @@ class GaussianMutation(MutationOperator):
         sigma (float): Standard deviation of the Gaussian noise.
         probability (float): Probability of mutating each gene.
     """
+
     def __init__(self, sigma: float = 0.1, probability: float = 0.1):
         self.sigma = sigma
         self.probability = probability
@@ -84,6 +88,7 @@ class UniformMutation(MutationOperator):
     Parameters:
         probability (float): Probability of mutating each gene.
     """
+
     def __init__(self, probability: float = 0.1):
         self.probability = probability
 
@@ -107,7 +112,14 @@ class NonUniformMutation(MutationOperator):
         sigma_min (float): Minimum std deviation.
         probability (float): Probability of mutating each gene.
     """
-    def __init__(self, progress: float, sigma_max: float = 0.3, sigma_min: float = 0.01, probability: float = 0.1):
+
+    def __init__(
+        self,
+        progress: float,
+        sigma_max: float = 0.3,
+        sigma_min: float = 0.01,
+        probability: float = 0.1,
+    ):
         assert 0.0 <= progress <= 1.0, "Progress must be in [0,1]"
         self.progress = progress
         self.sigma_max = sigma_max
@@ -137,6 +149,7 @@ class UniformIntegerMutation(MutationOperator):
     Parameters:
         probability (float): Probability of mutating each gene.
     """
+
     def __init__(self, probability: float = 0.1):
         self.probability = probability
 
@@ -158,6 +171,7 @@ class CreepIntegerMutation(MutationOperator):
         delta (int): Maximum integer change.
         probability (float): Probability of mutating each gene.
     """
+
     def __init__(self, delta: int = 1, probability: float = 0.1):
         self.delta = delta
         self.probability = probability
@@ -184,7 +198,10 @@ class NonUniformIntegerMutation(MutationOperator):
         delta_min (int): Minimum integer delta.
         probability (float): Probability of mutating each gene.
     """
-    def __init__(self, progress: float, delta_max: int = 5, delta_min: int = 1, probability: float = 0.1):
+
+    def __init__(
+        self, progress: float, delta_max: int = 5, delta_min: int = 1, probability: float = 0.1
+    ):
         assert 0.0 <= progress <= 1.0
         self.progress = progress
         self.delta_max = delta_max
@@ -209,6 +226,7 @@ class NonUniformIntegerMutation(MutationOperator):
 # =============================================================================
 class SwapMutation(MutationOperator):
     """Swaps two random positions in a permutation."""
+
     def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:
         if not isinstance(genotype, PermutationGenotype):
             raise TypeError("SwapMutation is only applicable to PermutationGenotype.")
@@ -220,6 +238,7 @@ class SwapMutation(MutationOperator):
 
 class InsertMutation(MutationOperator):
     """Removes one element and inserts it into a random new position."""
+
     def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:
         if not isinstance(genotype, PermutationGenotype):
             raise TypeError("InsertMutation is only applicable to PermutationGenotype.")
@@ -233,6 +252,7 @@ class InsertMutation(MutationOperator):
 
 class ScrambleMutation(MutationOperator):
     """Randomly shuffles a subsequence within the permutation."""
+
     def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:
         if not isinstance(genotype, PermutationGenotype):
             raise TypeError("ScrambleMutation is only applicable to PermutationGenotype.")
@@ -246,6 +266,7 @@ class ScrambleMutation(MutationOperator):
 
 class InversionMutation(MutationOperator):
     """Reverses the order of a subsequence."""
+
     def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:
         if not isinstance(genotype, PermutationGenotype):
             raise TypeError("InversionMutation is only applicable to PermutationGenotype.")
