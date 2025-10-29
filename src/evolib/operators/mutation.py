@@ -199,9 +199,7 @@ class NonUniformIntegerMutation(MutationOperator):
         probability (float): Probability of mutating each gene.
     """
 
-    def __init__(
-        self, progress: float, delta_max: int = 5, delta_min: int = 1, probability: float = 0.1
-    ):
+    def __init__(self, progress: float, delta_max: int = 5, delta_min: int = 1, probability: float = 0.1):
         assert 0.0 <= progress <= 1.0
         self.progress = progress
         self.delta_max = delta_max

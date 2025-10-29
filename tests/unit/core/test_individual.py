@@ -27,9 +27,7 @@ def test_individual_copy():
 
     assert ind1 == ind2, "Copied individual should be equal to the original"
     assert ind1.genotype is not ind2.genotype, "Genotypes should be different objects"
-    assert np.array_equal(ind1.genotype.genes, ind2.genotype.genes), (
-        "Genotype genes should be equal"
-    )
+    assert np.array_equal(ind1.genotype.genes, ind2.genotype.genes), "Genotype genes should be equal"
 
 
 def test_create_population():

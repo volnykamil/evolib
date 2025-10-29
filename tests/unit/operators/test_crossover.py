@@ -102,9 +102,7 @@ def test_simulated_binary_crossover():
 # =============================================================================
 
 
-@pytest.mark.parametrize(
-    "cls", [OrderCrossover, PartiallyMappedCrossover, CycleCrossover, EdgeRecombinationCrossover]
-)
+@pytest.mark.parametrize("cls", [OrderCrossover, PartiallyMappedCrossover, CycleCrossover, EdgeRecombinationCrossover])
 def test_permutation_crossovers(cls):
     p1, p2 = make_permutation_genotype(), make_permutation_genotype()
     cx = cls()

@@ -22,9 +22,7 @@ from evolib.operators.mutation import (
 import numpy as np
 
 
-def assert_change(
-    mutated_genotype: Genotype, original_genotype: Genotype, original_genes: np.ndarray
-):
+def assert_change(mutated_genotype: Genotype, original_genotype: Genotype, original_genes: np.ndarray):
     """Helper function to assert that a change has occurred."""
     assert len(mutated_genotype) == len(original_genotype)
     num_changed = np.sum(mutated_genotype.genes != original_genes)
@@ -102,9 +100,7 @@ def test_uniform_integer_mutation():
 def test_uniform_integer_mutation_fail():
     genotype = RealGenotype.random(length=10)
     mutation_operator = UniformIntegerMutation(probability=0.5)
-    with pytest.raises(
-        TypeError, match="UniformIntegerMutation is only applicable to IntegerGenotype."
-    ):
+    with pytest.raises(TypeError, match="UniformIntegerMutation is only applicable to IntegerGenotype."):
         mutation_operator.mutate(genotype)
 
 
@@ -119,9 +115,7 @@ def test_creep_integer_mutation():
 def test_creep_integer_mutation_fail():
     genotype = RealGenotype.random(length=10)
     mutation_operator = CreepIntegerMutation(probability=0.5)
-    with pytest.raises(
-        TypeError, match="CreepIntegerMutation is only applicable to IntegerGenotype."
-    ):
+    with pytest.raises(TypeError, match="CreepIntegerMutation is only applicable to IntegerGenotype."):
         mutation_operator.mutate(genotype)
 
 
@@ -136,9 +130,7 @@ def test_non_uniform_integer_mutation():
 def test_non_uniform_integer_mutation_fail():
     genotype = RealGenotype.random(length=10)
     mutation_operator = NonUniformIntegerMutation(progress=0.5, probability=0.5)
-    with pytest.raises(
-        TypeError, match="NonUniformIntegerMutation is only applicable to IntegerGenotype."
-    ):
+    with pytest.raises(TypeError, match="NonUniformIntegerMutation is only applicable to IntegerGenotype."):
         mutation_operator.mutate(genotype)
 
 
@@ -168,9 +160,7 @@ def test_insert_mutation():
 def test_insert_mutation_fail():
     genotype = RealGenotype.random(length=10)
     mutation_operator = InsertMutation()
-    with pytest.raises(
-        TypeError, match="InsertMutation is only applicable to PermutationGenotype."
-    ):
+    with pytest.raises(TypeError, match="InsertMutation is only applicable to PermutationGenotype."):
         mutation_operator.mutate(genotype)
 
 
@@ -185,9 +175,7 @@ def test_scramble_mutation():
 def test_scramble_mutation_fail():
     genotype = RealGenotype.random(length=10)
     mutation_operator = ScrambleMutation()
-    with pytest.raises(
-        TypeError, match="ScrambleMutation is only applicable to PermutationGenotype."
-    ):
+    with pytest.raises(TypeError, match="ScrambleMutation is only applicable to PermutationGenotype."):
         mutation_operator.mutate(genotype)
 
 
@@ -202,7 +190,5 @@ def test_inversion_mutation():
 def test_inversion_mutation_fail():
     genotype = RealGenotype.random(length=10)
     mutation_operator = InversionMutation()
-    with pytest.raises(
-        TypeError, match="InversionMutation is only applicable to PermutationGenotype."
-    ):
+    with pytest.raises(TypeError, match="InversionMutation is only applicable to PermutationGenotype."):
         mutation_operator.mutate(genotype)

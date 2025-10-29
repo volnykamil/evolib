@@ -51,21 +51,19 @@ class Genotype(ABC):
 class BinaryGenotype(Genotype):
     def __init__(self, genes: np.ndarray):
         if genes.dtype != np.bool_:
-            raise TypeError(
-                f"BinaryGenotype genes must be boolean (np.bool_), got dtype={genes.dtype}."
-            )
+            raise TypeError(f"BinaryGenotype genes must be boolean (np.bool_), got dtype={genes.dtype}.")
         self.genes: np.ndarray = genes
 
     @classmethod
     def random(cls, length: int, p: float = 0.5) -> BinaryGenotype:
         genes = np.random.rand(length) < p
         return cls(genes)
-    
+
     def __eq__(self, other) -> bool:
         if not isinstance(other, BinaryGenotype):
             return False
         return np.array_equal(self.genes, other.genes)
-    
+
     def __hash__(self):
         return hash(self.genes.tobytes())
 
@@ -89,6 +87,7 @@ class RealGenotype(Genotype):
             raise ValueError(f"Invalid bounds {bounds}: low must be < high.")
         self.genes: np.ndarray = genes
         self.bounds: tuple[float, float] = bounds
+
     @classmethod
     def random(cls, length: int, bounds: tuple[float, float] = (0.0, 1.0)) -> RealGenotype:
         low, high = bounds
@@ -105,12 +104,12 @@ class RealGenotype(Genotype):
         if not isinstance(other, RealGenotype):
             return False
         return np.array_equal(self.genes, other.genes) and self.bounds == other.bounds
-    
+
     def __sub__(self, other: RealGenotype) -> np.ndarray:
         if not isinstance(other, RealGenotype):
             raise TypeError("Subtraction only supported between RealGenotype instances.")
         return self.genes - other.genes
-    
+
     def __hash__(self):
         return hash((self.genes.tobytes(), self.bounds))
 
@@ -123,13 +122,12 @@ class IntegerGenotype(Genotype):
 
     def __init__(self, genes: np.ndarray, bounds: tuple[int, int] = (0, 10)):
         if not np.issubdtype(genes.dtype, np.integer):
-            raise TypeError(
-                f"IntegerGenotype genes must be integer dtype, got dtype={genes.dtype}."
-            )
+            raise TypeError(f"IntegerGenotype genes must be integer dtype, got dtype={genes.dtype}.")
         if bounds[0] > bounds[1]:
             raise ValueError(f"Invalid bounds {bounds}: low must be <= high.")
         self.genes: np.ndarray = genes
         self.bounds: tuple[int, int] = bounds
+
     @classmethod
     def random(cls, length: int, bounds: tuple[int, int] = (0, 10)) -> IntegerGenotype:
         low, high = bounds
@@ -155,6 +153,7 @@ class IntegerGenotype(Genotype):
     def __hash__(self):
         return hash((self.genes.tobytes(), self.bounds))
 
+
 # =============================================================================
 # PermutationGenotype
 # =============================================================================
@@ -163,15 +162,10 @@ class PermutationGenotype(Genotype):
 
     def __init__(self, genes: np.ndarray):
         if not np.issubdtype(genes.dtype, np.integer):
-            raise TypeError(
-                f"PermutationGenotype genes must be integer dtype, got dtype={genes.dtype}."
-            )
+            raise TypeError(f"PermutationGenotype genes must be integer dtype, got dtype={genes.dtype}.")
         unique_genes = np.unique(genes)
         expected_genes = np.arange(len(genes))
-        if not (
-            len(unique_genes) == len(genes)
-            and np.array_equal(np.sort(unique_genes), expected_genes)
-        ):
+        if not (len(unique_genes) == len(genes) and np.array_equal(np.sort(unique_genes), expected_genes)):
             raise ValueError("Genes must be a permutation of integers from 0 to len(genes)-1.")
         self.genes: np.ndarray = genes.astype(np.int32)
 

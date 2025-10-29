@@ -35,12 +35,7 @@ def make_individual(fitness: float, age: int = 0, length: int = 5, kind: str = "
 
 
 def make_population(size: int, kind: str = "int", fitness_start: float = 0.0) -> Population:
-    return Population(
-        [
-            make_individual(fitness=fitness_start + i, age=i, length=7, kind=kind)
-            for i in range(size)
-        ]
-    )
+    return Population([make_individual(fitness=fitness_start + i, age=i, length=7, kind=kind) for i in range(size)])
 
 
 # -----------------------------------------------------------------------------
@@ -239,8 +234,8 @@ def test_population_size_truncation():
     strat = GenerationalReplacement()
     new_pop = strat.replace(parents, offspring, population_size=4)
     assert len(new_pop) == 4
-    # When population_size larger than offspring slice length 
-	# fallback still respects requested size due to slicing logic
+    # When population_size larger than offspring slice length
+    # fallback still respects requested size due to slicing logic
     new_pop2 = strat.replace(parents, offspring, population_size=20)
     assert len(new_pop2) == len(offspring)  # truncated to available offspring
 

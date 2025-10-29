@@ -27,9 +27,7 @@ from evolib.core.individual import Individual, Population
 class SelectionStrategy:
     """Base class for all selection strategies."""
 
-    def select(
-        self, population: Population, n_parents: int
-    ) -> Population:  # pragma: no cover (interface)
+    def select(self, population: Population, n_parents: int) -> Population:  # pragma: no cover (interface)
         raise NotImplementedError("SelectionStrategy must implement select().")
 
     # Common input validation helper

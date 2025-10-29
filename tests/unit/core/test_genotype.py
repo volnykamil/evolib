@@ -77,7 +77,5 @@ def test_permutation_genotype():
 def test_permutation_genotype_fail():
     with pytest.raises(TypeError, match="PermutationGenotype genes must be integer dtype"):
         PermutationGenotype(np.array([0.0, 2.0, 2.0, 3.0]))
-    with pytest.raises(
-        ValueError, match=r"Genes must be a permutation of integers from 0 to len\(genes\)-1\."
-    ):
+    with pytest.raises(ValueError, match=r"Genes must be a permutation of integers from 0 to len\(genes\)-1\."):
         PermutationGenotype(np.array([0, 2, 2, 3]))

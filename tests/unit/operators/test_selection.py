@@ -96,8 +96,6 @@ def test_selection_output_type_consistency(sample_population):
     ]
     for strat in strategies:
         result = (
-            strat.select(sample_population, 3)
-            if not isinstance(strat, Elitism)
-            else strat.select(sample_population)
+            strat.select(sample_population, 3) if not isinstance(strat, Elitism) else strat.select(sample_population)
         )
         assert all(isinstance(ind, Individual) for ind in result)

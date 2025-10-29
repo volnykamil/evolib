@@ -40,11 +40,7 @@ class Individual:
     def __eq__(self, other: object) -> bool:  # type: ignore[override]
         if not isinstance(other, Individual):
             return False
-        return (
-            self.genotype == other.genotype
-            and self.age == other.age
-            and self.fitness == other.fitness
-        )
+        return self.genotype == other.genotype and self.age == other.age and self.fitness == other.fitness
 
     def __repr__(self) -> str:  # Helpful for debugging/logging
         return (
@@ -59,7 +55,7 @@ class Individual:
             age=self.age,
             fitness=self.fitness,
         )
-    
+
     def __hash__(self):
         return hash((self.genotype, self.age, self.fitness))
 
