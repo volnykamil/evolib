@@ -83,11 +83,11 @@ class SteadyStateReplacement(ReplacementStrategy):
     def replace(
         self, parents: Population, offspring: Population, population_size: int
     ) -> Population:
-        parents = sorted(parents, key=lambda ind: ind.fitness, reverse=True)
-        offspring = sorted(offspring, key=lambda ind: ind.fitness, reverse=True)
+        parents = Population(sorted(parents, key=lambda ind: ind.fitness, reverse=True))
+        offspring = Population(sorted(offspring, key=lambda ind: ind.fitness, reverse=True))
         # Replace worst parents with best offspring
         new_population = parents[: -self.num_replacements] + offspring[: self.num_replacements]
-        return new_population[:population_size]
+        return Population(new_population[:population_size])
 
 
 class MuLambdaReplacement(ReplacementStrategy):
@@ -259,10 +259,12 @@ class FitnessSharingReplacement(ReplacementStrategy):
         niche_counts = np.zeros(n)
         for i in range(n):
             for j in range(n):
-                if arrays[i] is not None and arrays[j] is not None:
+                arr_i = arrays[i]
+                arr_j = arrays[j]
+                if arr_i is not None and arr_j is not None:
                     # Use L2 distance between genotypes of same length; otherwise fallback
-                    if arrays[i].shape == arrays[j].shape:
-                        distance = float(np.linalg.norm(arrays[i] - arrays[j]))
+                    if arr_i.shape == arr_j.shape:
+                        distance = float(np.linalg.norm(arr_i - arr_j))
                     else:
                         distance = abs(combined[i].fitness - combined[j].fitness)
                 else:

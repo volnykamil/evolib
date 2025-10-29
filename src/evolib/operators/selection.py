@@ -112,7 +112,8 @@ class TournamentSelection(SelectionStrategy):
             raise ValueError("k must be <= population size")
         selected: list[Individual] = []
         for _ in range(n_parents):
-            contenders = np.random.choice(population, size=self.k, replace=False)
+            contender_indices = np.random.choice(len(population), size=self.k, replace=False)
+            contenders = [population[i] for i in contender_indices]
             winner = max(contenders, key=lambda ind: ind.fitness)
             selected.append(winner)
         return Population(selected)
@@ -134,7 +135,8 @@ class TruncationSelection(SelectionStrategy):
         sorted_pop = sorted(population, key=lambda ind: ind.fitness, reverse=True)
         cutoff = int(len(sorted_pop) * self.fraction)
         top = sorted_pop[: max(1, cutoff)]
-        chosen = list(np.random.choice(top, size=n_parents, replace=True))
+        chosen_indices = np.random.choice(len(top), size=n_parents, replace=True)
+        chosen = [top[i] for i in chosen_indices]
         return Population(chosen)
 
 
@@ -199,7 +201,8 @@ class RandomSelection(SelectionStrategy):
 
     def select(self, population: Population, n_parents: int) -> Population:
         self._validate(population, n_parents)
-        chosen = list(np.random.choice(population, size=n_parents, replace=True))
+        chosen_indices = np.random.choice(len(population), size=n_parents, replace=True)
+        chosen = [population[i] for i in chosen_indices]
         return Population(chosen)
 
 

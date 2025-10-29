@@ -30,7 +30,7 @@ def validate_selection(selection: SelectionStrategy, population: Population, n: 
 
 def test_roulette_wheel_selection(sample_population):
     sel = RouletteWheelSelection()
-    selected = validate_selection(sel, sample_population, 5)
+    validate_selection(sel, sample_population, 5)
     many_trials = 1000
     counts = np.zeros(len(sample_population))
     for _ in range(many_trials):
@@ -42,45 +42,37 @@ def test_roulette_wheel_selection(sample_population):
 
 def test_stochastic_universal_sampling(sample_population):
     sel = StochasticUniversalSampling()
-    selected = validate_selection(sel, sample_population, 5)
-    assert len(selected) == 5
+    validate_selection(sel, sample_population, 5)
 
 
 def test_rank_selection(sample_population):
     sel = RankSelection()
-    selected = validate_selection(sel, sample_population, 5)
-    assert len(selected) == 5
+    validate_selection(sel, sample_population, 5)
 
 
 def test_tournament_selection(sample_population):
     sel = TournamentSelection(k=3)
-    selected = validate_selection(sel, sample_population, 5)
-    assert len(selected) == 5
-    assert all(isinstance(ind, Individual) for ind in selected)
+    validate_selection(sel, sample_population, 5)
 
 
 def test_truncation_selection(sample_population):
     sel = TruncationSelection(fraction=0.3)
-    selected = validate_selection(sel, sample_population, 5)
-    assert len(selected) == 5
+    validate_selection(sel, sample_population, 5)
 
 
 def test_boltzmann_selection(sample_population):
     sel = BoltzmannSelection(temperature=1.0)
-    selected = validate_selection(sel, sample_population, 5)
-    assert len(selected) == 5
+    validate_selection(sel, sample_population, 5)
 
 
 def test_fitness_sharing_selection(sample_population):
     sel = FitnessSharingSelection(sigma_share=2.0)
-    selected = validate_selection(sel, sample_population, 5)
-    assert len(selected) == 5
+    validate_selection(sel, sample_population, 5)
 
 
 def test_random_selection(sample_population):
     sel = RandomSelection()
-    selected = validate_selection(sel, sample_population, 5)
-    assert len(selected) == 5
+    validate_selection(sel, sample_population, 5)
 
 
 def test_elitism_selection(sample_population):

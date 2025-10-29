@@ -15,6 +15,9 @@ import numpy as np
 class Genotype(ABC):
     """Abstract base class for genotypes."""
 
+    def __init__(self, genes: np.ndarray):
+        self.genes: np.ndarray = genes
+
     @abstractmethod
     def __eq__(self, other) -> bool:
         pass
@@ -86,7 +89,6 @@ class RealGenotype(Genotype):
             raise ValueError(f"Invalid bounds {bounds}: low must be < high.")
         self.genes: np.ndarray = genes
         self.bounds: tuple[float, float] = bounds
-        self.bounds: tuple[float, float] = bounds
     @classmethod
     def random(cls, length: int, bounds: tuple[float, float] = (0.0, 1.0)) -> RealGenotype:
         low, high = bounds
@@ -127,7 +129,6 @@ class IntegerGenotype(Genotype):
         if bounds[0] > bounds[1]:
             raise ValueError(f"Invalid bounds {bounds}: low must be <= high.")
         self.genes: np.ndarray = genes
-        self.bounds: tuple[int, int] = bounds
         self.bounds: tuple[int, int] = bounds
     @classmethod
     def random(cls, length: int, bounds: tuple[int, int] = (0, 10)) -> IntegerGenotype:

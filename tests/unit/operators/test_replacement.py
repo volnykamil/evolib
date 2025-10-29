@@ -4,7 +4,7 @@ Unit tests for evolib.operators.replacement
 
 import pytest
 
-from evolib.core.genotype import BinaryGenotype, IntegerGenotype, RealGenotype
+from evolib.core.genotype import BinaryGenotype, Genotype, IntegerGenotype, RealGenotype
 from evolib.core.individual import Individual, Population
 from evolib.operators.replacement import (
     AgeBasedReplacement,
@@ -17,43 +17,20 @@ from evolib.operators.replacement import (
 )
 
 
-class TestIndividual(Individual):
-    def __hash__(self) -> int:
-        """Return a hash consistent with ``__eq__``.
-
-        We convert the genotype's genes to a Python tuple to obtain a stable
-        hashable representation. This can be expensive for very large genotypes
-        but is acceptable for current test sizes. If performance becomes an
-        issue, consider a cached hash invalidated on mutation or a lightweight
-        rolling hash.
-        """
-        # Convert genes to a tuple of Python scalars (avoid numpy's default
-        # non-hashable ndarray). Include bounds when present to preserve full
-        # equality semantics across genotype classes that incorporate them.
-        genes_array = self.genotype.as_array()
-        # Use .tolist() to get Python native types (ints/bools/floats), then tuple.
-        genes_tuple = tuple(genes_array.tolist())
-        # Some genotype types have 'bounds'; guard with getattr.
-        bounds = getattr(self.genotype, "bounds", None)
-        return hash((self.genotype.__class__, genes_tuple, bounds, self.age, self.fitness))
-
-
 # -----------------------------------------------------------------------------
 # Helper factories
 # -----------------------------------------------------------------------------
 def make_individual(fitness: float, age: int = 0, length: int = 5, kind: str = "int") -> Individual:
     if kind == "int":
-        genotype = IntegerGenotype.random(length, (0, 10))
+        genotype: Genotype = IntegerGenotype.random(length, (0, 10))
     elif kind == "bin":
         genotype = BinaryGenotype.random(length)
     elif kind == "real":
         genotype = RealGenotype.random(length, (0.0, 1.0))
     else:
         raise ValueError("Unsupported kind")
-    ind = TestIndividual(genotype=genotype, age=age, fitness=fitness)
-    # Some replacement strategies expect attribute 'fitness' (inconsistent naming).
-    # Attach it dynamically to avoid AttributeError while keeping tests isolated.
-    ind.fitness = fitness
+    ind = Individual(genotype=genotype, age=age, fitness=fitness)
+
     return ind
 
 
