@@ -122,7 +122,7 @@ class ArithmeticCrossover(CrossoverOperator):
     def __init__(self, alpha: float = 0.5):
         self.alpha = alpha
 
-    def crossover(self, p1: RealGenotype, p2: RealGenotype): # type: ignore[override]
+    def crossover(self, p1: RealGenotype, p2: RealGenotype):  # type: ignore[override]
         if not isinstance(p1, RealGenotype) or not isinstance(p2, RealGenotype):
             raise TypeError("ArithmeticCrossover is only applicable to RealGenotype.")
         c1_genes = self.alpha * p1.genes + (1 - self.alpha) * p2.genes
@@ -144,7 +144,7 @@ class BlendCrossover(CrossoverOperator):
     def __init__(self, alpha: float = 0.5):
         self.alpha = alpha
 
-    def crossover(self, p1: RealGenotype, p2: RealGenotype): # type: ignore[override]
+    def crossover(self, p1: RealGenotype, p2: RealGenotype):  # type: ignore[override]
         if not isinstance(p1, RealGenotype) or not isinstance(p2, RealGenotype):
             raise TypeError("BlendCrossover is only applicable to RealGenotype.")
         low, high = np.minimum(p1.genes, p2.genes), np.maximum(p1.genes, p2.genes)
@@ -171,7 +171,7 @@ class SimulatedBinaryCrossover(CrossoverOperator):
         self.eta = eta
         self.probability = probability
 
-    def crossover(self, p1: RealGenotype, p2: RealGenotype): # type: ignore[override]
+    def crossover(self, p1: RealGenotype, p2: RealGenotype):  # type: ignore[override]
         if not isinstance(p1, RealGenotype) or not isinstance(p2, RealGenotype):
             raise TypeError("SimulatedBinaryCrossover is only applicable to RealGenotype.")
         c1_genes = p1.genes.copy()
@@ -205,7 +205,7 @@ class OrderCrossover(CrossoverOperator):
     This method creates two offspring by preserving the relative order of genes from the parents.
     """
 
-    def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype): # type: ignore[override]
+    def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):  # type: ignore[override]
         if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
             raise TypeError("OrderCrossover is only applicable to PermutationGenotype.")
         n = len(p1.genes)
@@ -231,7 +231,7 @@ class PartiallyMappedCrossover(CrossoverOperator):
     and resolving conflicts through mapping.
     """
 
-    def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype): # type: ignore[override]
+    def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):  # type: ignore[override]
         if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
             raise TypeError("PMX is only applicable to PermutationGenotype.")
         n = len(p1.genes)
@@ -273,7 +273,7 @@ class CycleCrossover(CrossoverOperator):
     through cycles.
     """
 
-    def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype): # type: ignore[override]
+    def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):  # type: ignore[override]
         if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
             raise TypeError("CycleCrossover is only applicable to PermutationGenotype.")
         n = len(p1.genes)
@@ -303,7 +303,7 @@ class EdgeRecombinationCrossover(CrossoverOperator):
     This method creates two offspring by combining the edges of the parents.
     """
 
-    def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype): # type: ignore[override]
+    def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):  # type: ignore[override]
         if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
             raise TypeError("EdgeRecombinationCrossover is only applicable to PermutationGenotype.")
         n = len(p1.genes)

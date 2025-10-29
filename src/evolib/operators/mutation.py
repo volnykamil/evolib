@@ -47,7 +47,7 @@ class BitFlipMutation(MutationOperator):
     def __init__(self, probability: float = 0.01):
         self.probability = probability
 
-    def mutate(self, genotype: BinaryGenotype) -> BinaryGenotype: # type: ignore[override]
+    def mutate(self, genotype: BinaryGenotype) -> BinaryGenotype:  # type: ignore[override]
         if not isinstance(genotype, BinaryGenotype):
             raise TypeError("BitFlipMutation is only applicable to BinaryGenotype.")
         genes = genotype.genes.copy()
@@ -72,7 +72,7 @@ class GaussianMutation(MutationOperator):
         self.sigma = sigma
         self.probability = probability
 
-    def mutate(self, genotype: RealGenotype) -> RealGenotype: # type: ignore[override]
+    def mutate(self, genotype: RealGenotype) -> RealGenotype:  # type: ignore[override]
         if not isinstance(genotype, RealGenotype):
             raise TypeError("GaussianMutation is only applicable to RealGenotype.")
         genes = genotype.genes.copy()
@@ -95,7 +95,7 @@ class UniformMutation(MutationOperator):
     def __init__(self, probability: float = 0.1):
         self.probability = probability
 
-    def mutate(self, genotype: RealGenotype) -> RealGenotype: # type: ignore[override]
+    def mutate(self, genotype: RealGenotype) -> RealGenotype:  # type: ignore[override]
         if not isinstance(genotype, RealGenotype):
             raise TypeError("UniformMutation is only applicable to RealGenotype.")
         genes = genotype.genes.copy()
@@ -129,7 +129,7 @@ class NonUniformMutation(MutationOperator):
         self.sigma_min = sigma_min
         self.probability = probability
 
-    def mutate(self, genotype: RealGenotype) -> RealGenotype: # type: ignore[override]
+    def mutate(self, genotype: RealGenotype) -> RealGenotype:  # type: ignore[override]
         if not isinstance(genotype, RealGenotype):
             raise TypeError("NonUniformMutation is only applicable to RealGenotype.")
         genes = genotype.genes.copy()
@@ -156,7 +156,7 @@ class UniformIntegerMutation(MutationOperator):
     def __init__(self, probability: float = 0.1):
         self.probability = probability
 
-    def mutate(self, genotype: IntegerGenotype) -> IntegerGenotype: # type: ignore[override]
+    def mutate(self, genotype: IntegerGenotype) -> IntegerGenotype:  # type: ignore[override]
         if not isinstance(genotype, IntegerGenotype):
             raise TypeError("UniformIntegerMutation is only applicable to IntegerGenotype.")
         genes = genotype.genes.copy()
@@ -179,7 +179,7 @@ class CreepIntegerMutation(MutationOperator):
         self.delta = delta
         self.probability = probability
 
-    def mutate(self, genotype: IntegerGenotype) -> IntegerGenotype: # type: ignore[override]
+    def mutate(self, genotype: IntegerGenotype) -> IntegerGenotype:  # type: ignore[override]
         if not isinstance(genotype, IntegerGenotype):
             raise TypeError("CreepIntegerMutation is only applicable to IntegerGenotype.")
         genes = genotype.genes.copy()
@@ -209,7 +209,7 @@ class NonUniformIntegerMutation(MutationOperator):
         self.delta_min = delta_min
         self.probability = probability
 
-    def mutate(self, genotype: IntegerGenotype) -> IntegerGenotype: # type: ignore[override]
+    def mutate(self, genotype: IntegerGenotype) -> IntegerGenotype:  # type: ignore[override]
         if not isinstance(genotype, IntegerGenotype):
             raise TypeError("NonUniformIntegerMutation is only applicable to IntegerGenotype.")
         genes = genotype.genes.copy()
@@ -228,7 +228,7 @@ class NonUniformIntegerMutation(MutationOperator):
 class SwapMutation(MutationOperator):
     """Swaps two random positions in a permutation."""
 
-    def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype: # type: ignore[override]
+    def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:  # type: ignore[override]
         if not isinstance(genotype, PermutationGenotype):
             raise TypeError("SwapMutation is only applicable to PermutationGenotype.")
         genes = genotype.genes.copy()
@@ -240,7 +240,7 @@ class SwapMutation(MutationOperator):
 class InsertMutation(MutationOperator):
     """Removes one element and inserts it into a random new position."""
 
-    def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype: # type: ignore[override]
+    def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:  # type: ignore[override]
         if not isinstance(genotype, PermutationGenotype):
             raise TypeError("InsertMutation is only applicable to PermutationGenotype.")
         genes = genotype.genes.copy()
@@ -254,7 +254,7 @@ class InsertMutation(MutationOperator):
 class ScrambleMutation(MutationOperator):
     """Randomly shuffles a subsequence within the permutation."""
 
-    def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype: # type: ignore[override]
+    def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:  # type: ignore[override]
         if not isinstance(genotype, PermutationGenotype):
             raise TypeError("ScrambleMutation is only applicable to PermutationGenotype.")
         genes = genotype.genes.copy()
@@ -268,7 +268,7 @@ class ScrambleMutation(MutationOperator):
 class InversionMutation(MutationOperator):
     """Reverses the order of a subsequence."""
 
-    def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype: # type: ignore[override]
+    def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:  # type: ignore[override]
         if not isinstance(genotype, PermutationGenotype):
             raise TypeError("InversionMutation is only applicable to PermutationGenotype.")
         genes = genotype.genes.copy()
