@@ -67,11 +67,11 @@ class BinaryGenotype(Genotype):
     def __hash__(self):
         return hash(self.genes.tobytes())
 
-    def copy(self) -> BinaryGenotype:
-        return BinaryGenotype(np.copy(self.genes))
-
     def __len__(self) -> int:
         return self.genes.size
+
+    def copy(self) -> BinaryGenotype:
+        return BinaryGenotype(np.copy(self.genes))
 
 
 # =============================================================================
@@ -93,25 +93,25 @@ class RealGenotype(Genotype):
         low, high = bounds
         genes = np.random.uniform(low, high, size=length).astype(np.float64)
         return cls(genes, bounds)
-
-    def copy(self) -> RealGenotype:
-        return RealGenotype(np.copy(self.genes), self.bounds)
-
-    def __len__(self) -> int:
-        return self.genes.size
-
+    
     def __eq__(self, other) -> bool:
         if not isinstance(other, RealGenotype):
             return False
         return np.array_equal(self.genes, other.genes) and self.bounds == other.bounds
+    
+    def __hash__(self):
+        return hash((self.genes.tobytes(), self.bounds))
+    
+    def __len__(self) -> int:
+        return self.genes.size
+
+    def copy(self) -> RealGenotype:
+        return RealGenotype(np.copy(self.genes), self.bounds)
 
     def __sub__(self, other: RealGenotype) -> np.ndarray:
         if not isinstance(other, RealGenotype):
             raise TypeError("Subtraction only supported between RealGenotype instances.")
         return self.genes - other.genes
-
-    def __hash__(self):
-        return hash((self.genes.tobytes(), self.bounds))
 
 
 # =============================================================================
@@ -134,24 +134,24 @@ class IntegerGenotype(Genotype):
         genes = np.random.randint(low, high + 1, size=length).astype(np.int32)
         return cls(genes, bounds)
 
-    def copy(self) -> IntegerGenotype:
-        return IntegerGenotype(np.copy(self.genes), self.bounds)
-
-    def __len__(self) -> int:
-        return self.genes.size
-
     def __eq__(self, other) -> bool:
         if not isinstance(other, IntegerGenotype):
             return False
         return np.array_equal(self.genes, other.genes) and self.bounds == other.bounds
 
+    def __hash__(self):
+        return hash((self.genes.tobytes(), self.bounds))
+    
+    def __len__(self) -> int:
+        return self.genes.size
+    
+    def copy(self) -> IntegerGenotype:
+        return IntegerGenotype(np.copy(self.genes), self.bounds)
+
     def __sub__(self, other: IntegerGenotype) -> np.ndarray:
         if not isinstance(other, IntegerGenotype):
             raise TypeError("Subtraction only supported between IntegerGenotype instances.")
         return self.genes - other.genes
-
-    def __hash__(self):
-        return hash((self.genes.tobytes(), self.bounds))
 
 
 # =============================================================================
@@ -174,12 +174,6 @@ class PermutationGenotype(Genotype):
         genes = np.random.permutation(length).astype(np.int32)
         return cls(genes)
 
-    def copy(self) -> PermutationGenotype:
-        return PermutationGenotype(np.copy(self.genes))
-
-    def __len__(self) -> int:
-        return self.genes.size
-
     def __eq__(self, other) -> bool:
         if not isinstance(other, PermutationGenotype):
             return False
@@ -187,3 +181,14 @@ class PermutationGenotype(Genotype):
 
     def __hash__(self):
         return hash(self.genes.tobytes())
+    
+    def __len__(self) -> int:
+        return self.genes.size
+
+    def copy(self) -> PermutationGenotype:
+        return PermutationGenotype(np.copy(self.genes))
+
+    def __sub__(self, other: PermutationGenotype) -> np.ndarray:
+        if not isinstance(other, PermutationGenotype):
+            raise TypeError("Subtraction only supported between PermutationGenotype instances.")
+        return self.genes - other.genes
