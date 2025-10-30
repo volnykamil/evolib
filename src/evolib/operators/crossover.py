@@ -9,11 +9,14 @@ for BinaryGenotype, RealGenotype, IntegerGenotype, and PermutationGenotype.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import numpy as np
 
 from evolib.core.genotype import (
+    BinaryGenotype,
     Genotype,
+    HybridGenotype,
     IntegerGenotype,
     PermutationGenotype,
     RealGenotype,
@@ -26,10 +29,117 @@ from evolib.core.genotype import (
 class CrossoverOperator(ABC):
     """Abstract base class for crossover operators."""
 
+    supported_genotypes: tuple[type[Genotype], ...] = ()
+
     @abstractmethod
     def crossover(self, parent1: Genotype, parent2: Genotype) -> tuple[Genotype, Genotype]:
         """Return two offspring created from parent1 and parent2."""
         pass
+
+
+# =============================================================================
+# HybridGenotype crossovers
+# =============================================================================
+class HybridCrossover(CrossoverOperator):
+    """Sequential component-wise crossover."""
+
+    def __init__(self, operators: dict[str, CrossoverOperator]):
+        self.operators = operators
+
+    def crossover(self, parent1: HybridGenotype, parent2: HybridGenotype) -> tuple[HybridGenotype, HybridGenotype]:  # type: ignore[override]
+        child1_parts, child2_parts = {}, {}
+        for key in parent1.components:
+            op = self.operators.get(key)
+            if op:
+                c1, c2 = op.crossover(parent1.components[key], parent2.components[key])
+                child1_parts[key], child2_parts[key] = c1, c2
+            else:
+                child1_parts[key], child2_parts[key] = parent1.components[key], parent2.components[key]
+        return HybridGenotype(child1_parts), HybridGenotype(child2_parts)
+
+
+def _crossover_component(
+    key: str, parent1_part: Genotype, parent2_part: Genotype, operator: CrossoverOperator | None
+) -> tuple[str, Genotype, Genotype]:
+    """
+    Top-level helper function for parallel hybrid crossover.
+    Must be defined at module scope for ProcessPoolExecutor pickling.
+    Returns (key, child1_part, child2_part).
+    """
+    if operator is None:
+        # Fallback — no crossover operator: clone parents
+        child1_part = parent1_part.copy()
+        child2_part = parent2_part.copy()
+    else:
+        result = operator.crossover(parent1_part, parent2_part)
+        if isinstance(result, tuple) and len(result) == 2:
+            child1_part, child2_part = result
+        else:
+            # Handle operators that return only one child
+            child1_part = result
+            child2_part = (
+                operator.crossover(parent2_part, parent1_part)[0] if hasattr(operator, "crossover") else result
+            )
+    return key, child1_part, child2_part
+
+
+class ParallelHybridCrossover:
+    """
+    Parallelized crossover for HybridGenotype using ProcessPoolExecutor.
+    Each sub-genotype can have its own crossover operator.
+    Returns two HybridGenotypes (children).
+    """
+
+    def __init__(
+        self, operators: dict[str, CrossoverOperator], max_workers: int | None = None, persistent: bool = False
+    ):
+        """
+        Args:
+            operators: Mapping of genotype part keys to crossover operators.
+            max_workers: Number of parallel workers (default: CPU count).
+            persistent: If True, keeps a persistent pool open for reuse.
+        """
+        self.operators = operators
+        self.max_workers = max_workers
+        self.persistent = persistent
+        self._executor = ProcessPoolExecutor(max_workers=max_workers) if persistent else None
+
+    def crossover(self, parent1: HybridGenotype, parent2: HybridGenotype) -> tuple[HybridGenotype, HybridGenotype]:
+        """
+        Perform parallel crossover between two hybrid parents.
+
+        Returns:
+            Tuple[HybridGenotype, HybridGenotype]: Two child genotypes.
+        """
+        if not isinstance(parent1, HybridGenotype) or not isinstance(parent2, HybridGenotype):
+            raise TypeError("ParallelHybridCrossover expects HybridGenotype parents.")
+
+        executor = self._executor or ProcessPoolExecutor(max_workers=self.max_workers)
+        futures = []
+
+        for key, _ in parent1.components.items():
+            op = self.operators.get(key)
+            part1 = parent1.components[key]
+            part2 = parent2.components[key]
+            futures.append(executor.submit(_crossover_component, key, part1, part2, op))
+
+        child1_parts, child2_parts = {}, {}
+
+        for f in as_completed(futures):
+            key, part1, part2 = f.result()
+            child1_parts[key] = part1
+            child2_parts[key] = part2
+
+        if not self.persistent:
+            executor.shutdown()
+
+        return HybridGenotype(child1_parts), HybridGenotype(child2_parts)
+
+    def close(self):
+        """Shutdown persistent process pool."""
+        if self._executor:
+            self._executor.shutdown()
+            self._executor = None
 
 
 # =============================================================================
@@ -41,6 +151,8 @@ class OnePointCrossover(CrossoverOperator):
 
     This method creates two offspring by combining the genes of the parents at a single crossover point.
     """
+
+    supported_genotypes: tuple[type[Genotype], ...] = (BinaryGenotype, RealGenotype, IntegerGenotype)
 
     def crossover(self, p1: Genotype, p2: Genotype):
         if type(p1) is not type(p2):
@@ -66,6 +178,8 @@ class TwoPointCrossover(CrossoverOperator):
     This method creates two offspring by combining the genes of the parents between two crossover points.
     """
 
+    supported_genotypes: tuple[type[Genotype], ...] = (BinaryGenotype, RealGenotype, IntegerGenotype)
+
     def crossover(self, p1: Genotype, p2: Genotype):
         if type(p1) is not type(p2):
             raise TypeError("Parents must be of the same genotype type.")
@@ -87,6 +201,8 @@ class UniformCrossover(CrossoverOperator):
     This method creates two offspring by randomly selecting genes from each parent
     based on the specified probability.
     """
+
+    supported_genotypes: tuple[type[Genotype], ...] = (BinaryGenotype, RealGenotype, IntegerGenotype)
 
     def __init__(self, probability: float = 0.5):
         self.probability = probability
@@ -119,6 +235,8 @@ class ArithmeticCrossover(CrossoverOperator):
     using a specified alpha parameter.
     """  # noqa: RUF002
 
+    supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
+
     def __init__(self, alpha: float = 0.5):
         self.alpha = alpha
 
@@ -140,6 +258,8 @@ class BlendCrossover(CrossoverOperator):
     This method creates two offspring by sampling genes from an extended range
     around the parents' genes, controlled by the alpha parameter.
     """  # noqa: RUF002
+
+    supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
 
     def __init__(self, alpha: float = 0.5):
         self.alpha = alpha
@@ -166,6 +286,8 @@ class SimulatedBinaryCrossover(CrossoverOperator):
     This method creates two offspring by simulating the behavior of single-point crossover
     on binary-encoded genotypes, adapted for real-valued genes.
     """
+
+    supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
 
     def __init__(self, eta: float = 15.0, probability: float = 1.0):
         self.eta = eta
@@ -205,9 +327,11 @@ class OrderCrossover(CrossoverOperator):
     This method creates two offspring by preserving the relative order of genes from the parents.
     """
 
+    supported_genotypes: tuple[type[Genotype], ...] = (PermutationGenotype,)
+
     def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):  # type: ignore[override]
-        if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
-            raise TypeError("OrderCrossover is only applicable to PermutationGenotype.")
+        if not isinstance(p1, self.supported_genotypes) or not isinstance(p2, self.supported_genotypes):
+            raise TypeError(f"OrderCrossover is only applicable to {self.supported_genotypes}.")
         n = len(p1.genes)
         a, b = sorted(np.random.choice(range(n), 2, replace=False))
         c1 = [-1] * n
@@ -231,9 +355,11 @@ class PartiallyMappedCrossover(CrossoverOperator):
     and resolving conflicts through mapping.
     """
 
+    supported_genotypes: tuple[type[Genotype], ...] = (PermutationGenotype,)
+
     def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):  # type: ignore[override]
-        if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
-            raise TypeError("PMX is only applicable to PermutationGenotype.")
+        if not isinstance(p1, self.supported_genotypes) or not isinstance(p2, self.supported_genotypes):
+            raise TypeError(f"PMX is only applicable to {self.supported_genotypes}.")
         n = len(p1.genes)
         a, b = sorted(np.random.choice(range(n), 2, replace=False))
 
@@ -273,9 +399,11 @@ class CycleCrossover(CrossoverOperator):
     through cycles.
     """
 
+    supported_genotypes: tuple[type[Genotype], ...] = (PermutationGenotype,)
+
     def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):  # type: ignore[override]
-        if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
-            raise TypeError("CycleCrossover is only applicable to PermutationGenotype.")
+        if not isinstance(p1, self.supported_genotypes) or not isinstance(p2, self.supported_genotypes):
+            raise TypeError(f"CycleCrossover is only applicable to {self.supported_genotypes}.")
         n = len(p1.genes)
         c1, c2 = np.empty(n, dtype=int), np.empty(n, dtype=int)
         c1[:] = -1
@@ -303,9 +431,11 @@ class EdgeRecombinationCrossover(CrossoverOperator):
     This method creates two offspring by combining the edges of the parents.
     """
 
+    supported_genotypes: tuple[type[Genotype], ...] = (PermutationGenotype,)
+
     def crossover(self, p1: PermutationGenotype, p2: PermutationGenotype):  # type: ignore[override]
-        if not isinstance(p1, PermutationGenotype) or not isinstance(p2, PermutationGenotype):
-            raise TypeError("EdgeRecombinationCrossover is only applicable to PermutationGenotype.")
+        if not isinstance(p1, self.supported_genotypes) or not isinstance(p2, self.supported_genotypes):
+            raise TypeError(f"EdgeRecombinationCrossover is only applicable to {self.supported_genotypes}.")
         n = len(p1.genes)
 
         def build_edge_map(p1, p2):

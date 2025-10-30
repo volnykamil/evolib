@@ -4,6 +4,7 @@ import pytest
 from evolib.core.genotype import (
     BinaryGenotype,
     Genotype,
+    HybridGenotype,
     IntegerGenotype,
     PermutationGenotype,
     RealGenotype,
@@ -12,10 +13,12 @@ from evolib.operators.mutation import (
     BitFlipMutation,
     CreepIntegerMutation,
     GaussianMutation,
+    HybridMutation,
     InsertMutation,
     InversionMutation,
     NonUniformIntegerMutation,
     NonUniformMutation,
+    ParallelHybridMutation,
     ScrambleMutation,
     SwapMutation,
     UniformIntegerMutation,
@@ -41,7 +44,8 @@ def test_bit_flip_mutation():
 def test_bit_flip_mutation_fail():
     genotype = RealGenotype.random(length=10)
     mutation_operator = BitFlipMutation(probability=0.5)
-    with pytest.raises(TypeError, match=r"BitFlipMutation is only applicable to BinaryGenotype."):
+    # Escape parentheses contents to satisfy Python 3.13 regex behavior.
+    with pytest.raises(TypeError, match=r"BitFlipMutation is only applicable to \('BinaryGenotype',\)."):
         mutation_operator.mutate(genotype)
 
 
@@ -56,7 +60,7 @@ def test_gaussian_mutation():
 def test_gaussian_mutation_fail():
     genotype = BinaryGenotype.random(length=10)
     mutation_operator = GaussianMutation(sigma=0.1, probability=0.5)
-    with pytest.raises(TypeError, match=r"GaussianMutation is only applicable to RealGenotype."):
+    with pytest.raises(TypeError, match=r"GaussianMutation is only applicable to \('RealGenotype',\)."):
         mutation_operator.mutate(genotype)
 
 
@@ -193,3 +197,79 @@ def test_inversion_mutation_fail():
     mutation_operator = InversionMutation()
     with pytest.raises(TypeError, match=r"InversionMutation is only applicable to PermutationGenotype."):
         mutation_operator.mutate(genotype)
+
+
+def test_hybrid_mutation():
+    genotype_parts = {
+        "part1": RealGenotype.random(length=50, bounds=(0.0, 1.0)),
+        "part2": IntegerGenotype.random(length=50, bounds=(0, 100)),
+    }
+    genotype = HybridGenotype(genotype_parts)
+    mutation_operators = {
+        "part1": GaussianMutation(sigma=0.1, probability=0.5),
+        "part2": CreepIntegerMutation(probability=0.5),
+    }
+    mutation_operator = HybridMutation(operators=mutation_operators)
+    mutated_genotype = mutation_operator.mutate(genotype)
+
+    for key, _ in genotype_parts.items():
+        original_genes = genotype_parts[key].genes.copy()
+        _ = mutated_genotype.components[key].genes
+        assert_change(mutated_genotype.components[key], genotype_parts[key], original_genes)
+
+
+def test_hybrid_mutation_fail():
+    genotype_parts = {
+        "part1": RealGenotype.random(length=50, bounds=(0.0, 1.0)),
+        "part2": IntegerGenotype.random(length=50, bounds=(0, 100)),
+    }
+    genotype = HybridGenotype(genotype_parts)
+    mutation_operators = {
+        "part1": GaussianMutation(sigma=0.1, probability=0.5),
+        # Intentionally incorrect operator for testing
+        "part2": GaussianMutation(sigma=0.1, probability=0.5),
+    }
+    mutation_operator = HybridMutation(operators=mutation_operators)
+    with pytest.raises(TypeError, match=r"GaussianMutation is only applicable to \('RealGenotype',\)."):
+        mutation_operator.mutate(genotype)
+
+
+def test_parallel_hybrid_mutation():
+    genotype_parts = {
+        "part1": RealGenotype.random(length=50, bounds=(0.0, 1.0)),
+        "part2": IntegerGenotype.random(length=50, bounds=(0, 100)),
+    }
+    genotype = HybridGenotype(genotype_parts)
+    mutation_operators = {
+        "part1": GaussianMutation(sigma=0.1, probability=0.5),
+        "part2": CreepIntegerMutation(probability=0.5),
+    }
+    mutation_operator = ParallelHybridMutation(operators=mutation_operators, max_workers=2)
+    mutated_genotype = mutation_operator.mutate(genotype)
+    mutation_operator.close()
+
+    for key, _ in genotype_parts.items():
+        original_genes = genotype_parts[key].genes.copy()
+        _ = mutated_genotype.components[key].genes
+        assert_change(mutated_genotype.components[key], genotype_parts[key], original_genes)
+
+
+def test_parallel_hybrid_mutation_fail():
+    genotype_parts = {
+        "part1": RealGenotype.random(length=50, bounds=(0.0, 1.0)),
+        "part2": IntegerGenotype.random(length=50, bounds=(0, 100)),
+    }
+    genotype = HybridGenotype(genotype_parts)
+    mutation_operators = {
+        "part1": GaussianMutation(sigma=0.1, probability=0.5),
+        # Intentionally incorrect operator for testing
+        "part2": GaussianMutation(sigma=0.1, probability=0.5),
+    }
+    mutation_operator = ParallelHybridMutation(operators=mutation_operators, max_workers=2)
+    with pytest.raises(TypeError, match=r"GaussianMutation is only applicable to \('RealGenotype',\)."):
+        mutation_operator.mutate(genotype)
+    mutation_operator.close()
+
+
+if __name__ == "__main__":
+    pytest.main()

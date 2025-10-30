@@ -7,6 +7,7 @@ import pytest
 
 from evolib.core.genotype import (
     BinaryGenotype,
+    HybridGenotype,
     IntegerGenotype,
     PermutationGenotype,
     RealGenotype,
@@ -16,8 +17,10 @@ from evolib.operators.crossover import (
     BlendCrossover,
     CycleCrossover,
     EdgeRecombinationCrossover,
+    HybridCrossover,
     OnePointCrossover,
     OrderCrossover,
+    ParallelHybridCrossover,
     PartiallyMappedCrossover,
     SimulatedBinaryCrossover,
     TwoPointCrossover,
@@ -194,3 +197,117 @@ def test_edge_recombination_crossover_wrong_type():
     cx = EdgeRecombinationCrossover()
     with pytest.raises(TypeError):
         cx.crossover(p1, p2)
+
+
+def test_hybrid_crossover():
+    parent1 = HybridGenotype(
+        {
+            "comp1": make_real_genotype(),
+            "comp2": make_permutation_genotype(),
+        }
+    )
+    parent2 = HybridGenotype(
+        {
+            "comp1": make_real_genotype(),
+            "comp2": make_permutation_genotype(),
+        }
+    )
+    crossover_operator = HybridCrossover(
+        operators={
+            "comp1": BlendCrossover(alpha=0.5),
+            "comp2": OrderCrossover(),
+        }
+    )
+    child1, child2 = crossover_operator.crossover(parent1, parent2)
+    assert isinstance(child1, HybridGenotype)
+    assert isinstance(child2, HybridGenotype)
+    assert "comp1" in child1.components
+    assert "comp2" in child1.components
+    assert "comp1" in child2.components
+    assert "comp2" in child2.components
+    # Check types of components
+    assert isinstance(child1.components["comp1"], RealGenotype)
+    assert isinstance(child1.components["comp2"], PermutationGenotype)
+    assert isinstance(child2.components["comp1"], RealGenotype)
+    assert isinstance(child2.components["comp2"], PermutationGenotype)
+
+
+def test_hybrid_crossover_invalid_type():
+    parent1 = HybridGenotype(
+        {
+            "comp1": make_real_genotype(),
+            "comp2": make_permutation_genotype(),
+        }
+    )
+    parent2 = HybridGenotype(
+        {
+            "comp1": make_real_genotype(),
+            "comp2": make_permutation_genotype(),
+        }
+    )
+    crossover_operator = HybridCrossover(
+        operators={
+            "comp1": OrderCrossover(),  # Invalid for RealGenotype
+            "comp2": OrderCrossover(),
+        }
+    )
+    with pytest.raises(TypeError, match=r"OrderCrossover is only applicable to .*PermutationGenotype.*"):
+        crossover_operator.crossover(parent1, parent2)
+
+
+def test_parallel_hybrid_crossover():
+    parent1 = HybridGenotype(
+        {
+            "comp1": make_real_genotype(),
+            "comp2": make_permutation_genotype(),
+        }
+    )
+    parent2 = HybridGenotype(
+        {
+            "comp1": make_real_genotype(),
+            "comp2": make_permutation_genotype(),
+        }
+    )
+    crossover_operator = ParallelHybridCrossover(
+        operators={
+            "comp1": BlendCrossover(alpha=0.5),
+            "comp2": OrderCrossover(),
+        },
+        max_workers=2,
+    )
+    child1, child2 = crossover_operator.crossover(parent1, parent2)
+    assert isinstance(child1, HybridGenotype)
+    assert isinstance(child2, HybridGenotype)
+    assert "comp1" in child1.components
+    assert "comp2" in child1.components
+    assert "comp1" in child2.components
+    assert "comp2" in child2.components
+    # Check types of components
+    assert isinstance(child1.components["comp1"], RealGenotype)
+    assert isinstance(child1.components["comp2"], PermutationGenotype)
+    assert isinstance(child2.components["comp1"], RealGenotype)
+    assert isinstance(child2.components["comp2"], PermutationGenotype)
+
+
+def test_parallel_hybrid_crossover_invalid_type():
+    parent1 = HybridGenotype(
+        {
+            "comp1": make_real_genotype(),
+            "comp2": make_permutation_genotype(),
+        }
+    )
+    parent2 = HybridGenotype(
+        {
+            "comp1": make_real_genotype(),
+            "comp2": make_permutation_genotype(),
+        }
+    )
+    crossover_operator = ParallelHybridCrossover(
+        operators={
+            "comp1": OrderCrossover(),  # Invalid for RealGenotype
+            "comp2": OrderCrossover(),
+        },
+        max_workers=2,
+    )
+    with pytest.raises(TypeError, match=r"OrderCrossover is only applicable to .*PermutationGenotype.*"):
+        crossover_operator.crossover(parent1, parent2)

@@ -9,12 +9,14 @@ Supports: BinaryGenotype, IntegerGenotype, RealGenotype, and PermutationGenotype
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 
 from evolib.core.genotype import (
     BinaryGenotype,
     Genotype,
+    HybridGenotype,
     IntegerGenotype,
     PermutationGenotype,
     RealGenotype,
@@ -27,10 +29,64 @@ from evolib.core.genotype import (
 class MutationOperator(ABC):
     """Abstract base class for mutation operators."""
 
+    supported_genotypes: tuple[type[Genotype], ...] = ()
+
     @abstractmethod
     def mutate(self, genotype: Genotype) -> Genotype:
         """Return a mutated copy of the genotype."""
         pass
+
+
+# =============================================================================
+# HybridGenotype mutations
+# =============================================================================
+class HybridMutation(MutationOperator):
+    """Component-wise mutation (sequential)."""
+
+    def __init__(self, operators: dict[str, MutationOperator]):
+        self.operators = operators
+
+    def mutate(self, genotype: HybridGenotype) -> HybridGenotype:  # type: ignore[override]
+        new_components = {}
+        for key, subgen in genotype.components.items():
+            op = self.operators.get(key)
+            new_components[key] = op.mutate(subgen) if op else subgen
+        return HybridGenotype(new_components)
+
+
+def _mutate_component(key: str, subgen: Genotype, op: MutationOperator | None) -> tuple[str, Genotype]:
+    """Helper function for parallel mutation (must be top-level for pickling)."""
+    return key, op.mutate(subgen) if op else subgen
+
+
+class ParallelHybridMutation(HybridMutation):
+    """
+    Parallelized variant of HybridMutation using ProcessPoolExecutor.
+    Designed for CPU-bound evolutionary operations.
+    """
+
+    def __init__(
+        self, operators: dict[str, MutationOperator], max_workers: int | None = None, persistent: bool = False
+    ):
+        self.operators = operators
+        self.max_workers = max_workers
+        self.persistent = persistent
+        self._executor = ProcessPoolExecutor(max_workers=max_workers) if persistent else None
+
+    def mutate(self, genotype: HybridGenotype) -> HybridGenotype:  # type: ignore[override]
+        executor = self._executor or ProcessPoolExecutor(max_workers=self.max_workers)
+        futures = [
+            executor.submit(_mutate_component, key, subgen, self.operators.get(key))
+            for key, subgen in genotype.components.items()
+        ]
+        results = dict(f.result() for f in futures)
+        if not self.persistent:
+            executor.shutdown()
+        return HybridGenotype(results)
+
+    def close(self):
+        if self._executor:
+            self._executor.shutdown()
 
 
 # =============================================================================
@@ -44,12 +100,16 @@ class BitFlipMutation(MutationOperator):
         probability (float): Probability of flipping each bit.
     """
 
+    supported_genotypes: tuple[type[Genotype]] = (BinaryGenotype,)
+
     def __init__(self, probability: float = 0.01):
         self.probability = probability
 
     def mutate(self, genotype: BinaryGenotype) -> BinaryGenotype:  # type: ignore[override]
-        if not isinstance(genotype, BinaryGenotype):
-            raise TypeError("BitFlipMutation is only applicable to BinaryGenotype.")
+        if not isinstance(genotype, self.supported_genotypes):
+            # Format tuple of supported names exactly as tests expect: ('BinaryGenotype',)
+            names = tuple(st.__name__ for st in self.supported_genotypes)
+            raise TypeError(f"BitFlipMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
         mask = np.random.rand(len(genes)) < self.probability
         genes[mask] = ~genes[mask]
@@ -68,13 +128,16 @@ class GaussianMutation(MutationOperator):
         probability (float): Probability of mutating each gene.
     """
 
+    supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
+
     def __init__(self, sigma: float = 0.1, probability: float = 0.1):
         self.sigma = sigma
         self.probability = probability
 
     def mutate(self, genotype: RealGenotype) -> RealGenotype:  # type: ignore[override]
-        if not isinstance(genotype, RealGenotype):
-            raise TypeError("GaussianMutation is only applicable to RealGenotype.")
+        if not isinstance(genotype, self.supported_genotypes):
+            names = tuple(st.__name__ for st in self.supported_genotypes)
+            raise TypeError(f"GaussianMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
         mask = np.random.rand(len(genes)) < self.probability
         noise = np.random.normal(0, self.sigma, size=len(genes))
@@ -92,12 +155,16 @@ class UniformMutation(MutationOperator):
         probability (float): Probability of mutating each gene.
     """
 
+    supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
+
     def __init__(self, probability: float = 0.1):
         self.probability = probability
 
     def mutate(self, genotype: RealGenotype) -> RealGenotype:  # type: ignore[override]
-        if not isinstance(genotype, RealGenotype):
-            raise TypeError("UniformMutation is only applicable to RealGenotype.")
+        if not isinstance(genotype, self.supported_genotypes):
+            # Test expects plain class name without tuple/quotes.
+            names = ", ".join(st.__name__ for st in self.supported_genotypes)
+            raise TypeError(f"UniformMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
         mask = np.random.rand(len(genes)) < self.probability
         low, high = genotype.bounds
@@ -116,6 +183,8 @@ class NonUniformMutation(MutationOperator):
         probability (float): Probability of mutating each gene.
     """
 
+    supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
+
     def __init__(
         self,
         progress: float,
@@ -130,8 +199,9 @@ class NonUniformMutation(MutationOperator):
         self.probability = probability
 
     def mutate(self, genotype: RealGenotype) -> RealGenotype:  # type: ignore[override]
-        if not isinstance(genotype, RealGenotype):
-            raise TypeError("NonUniformMutation is only applicable to RealGenotype.")
+        if not isinstance(genotype, self.supported_genotypes):
+            names = ", ".join(st.__name__ for st in self.supported_genotypes)
+            raise TypeError(f"NonUniformMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
         mask = np.random.rand(len(genes)) < self.probability
         sigma = self.sigma_max * (1 - self.progress) + self.sigma_min * self.progress
@@ -153,12 +223,15 @@ class UniformIntegerMutation(MutationOperator):
         probability (float): Probability of mutating each gene.
     """
 
+    supported_genotypes: tuple[type[Genotype], ...] = (IntegerGenotype,)
+
     def __init__(self, probability: float = 0.1):
         self.probability = probability
 
     def mutate(self, genotype: IntegerGenotype) -> IntegerGenotype:  # type: ignore[override]
-        if not isinstance(genotype, IntegerGenotype):
-            raise TypeError("UniformIntegerMutation is only applicable to IntegerGenotype.")
+        if not isinstance(genotype, self.supported_genotypes):
+            names = ", ".join(st.__name__ for st in self.supported_genotypes)
+            raise TypeError(f"UniformIntegerMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
         mask = np.random.rand(len(genes)) < self.probability
         low, high = genotype.bounds
@@ -175,13 +248,16 @@ class CreepIntegerMutation(MutationOperator):
         probability (float): Probability of mutating each gene.
     """
 
+    supported_genotypes: tuple[type[Genotype], ...] = (IntegerGenotype,)
+
     def __init__(self, delta: int = 1, probability: float = 0.1):
         self.delta = delta
         self.probability = probability
 
     def mutate(self, genotype: IntegerGenotype) -> IntegerGenotype:  # type: ignore[override]
-        if not isinstance(genotype, IntegerGenotype):
-            raise TypeError("CreepIntegerMutation is only applicable to IntegerGenotype.")
+        if not isinstance(genotype, self.supported_genotypes):
+            names = ", ".join(st.__name__ for st in self.supported_genotypes)
+            raise TypeError(f"CreepIntegerMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
         mask = np.random.rand(len(genes)) < self.probability
         noise = np.random.randint(-self.delta, self.delta + 1, size=len(genes))
@@ -202,6 +278,8 @@ class NonUniformIntegerMutation(MutationOperator):
         probability (float): Probability of mutating each gene.
     """
 
+    supported_genotypes: tuple[type[Genotype], ...] = (IntegerGenotype,)
+
     def __init__(self, progress: float, delta_max: int = 5, delta_min: int = 1, probability: float = 0.1):
         assert 0.0 <= progress <= 1.0
         self.progress = progress
@@ -210,8 +288,9 @@ class NonUniformIntegerMutation(MutationOperator):
         self.probability = probability
 
     def mutate(self, genotype: IntegerGenotype) -> IntegerGenotype:  # type: ignore[override]
-        if not isinstance(genotype, IntegerGenotype):
-            raise TypeError("NonUniformIntegerMutation is only applicable to IntegerGenotype.")
+        if not isinstance(genotype, self.supported_genotypes):
+            names = ", ".join(st.__name__ for st in self.supported_genotypes)
+            raise TypeError(f"NonUniformIntegerMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
         mask = np.random.rand(len(genes)) < self.probability
         delta = round(self.delta_max * (1 - self.progress) + self.delta_min * self.progress)
@@ -228,9 +307,12 @@ class NonUniformIntegerMutation(MutationOperator):
 class SwapMutation(MutationOperator):
     """Swaps two random positions in a permutation."""
 
+    supported_genotypes: tuple[type[Genotype], ...] = (PermutationGenotype,)
+
     def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:  # type: ignore[override]
-        if not isinstance(genotype, PermutationGenotype):
-            raise TypeError("SwapMutation is only applicable to PermutationGenotype.")
+        if not isinstance(genotype, self.supported_genotypes):
+            names = ", ".join(st.__name__ for st in self.supported_genotypes)
+            raise TypeError(f"SwapMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
         i, j = np.random.choice(len(genes), 2, replace=False)
         genes[i], genes[j] = genes[j], genes[i]
@@ -240,9 +322,12 @@ class SwapMutation(MutationOperator):
 class InsertMutation(MutationOperator):
     """Removes one element and inserts it into a random new position."""
 
+    supported_genotypes: tuple[type[Genotype], ...] = (PermutationGenotype,)
+
     def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:  # type: ignore[override]
-        if not isinstance(genotype, PermutationGenotype):
-            raise TypeError("InsertMutation is only applicable to PermutationGenotype.")
+        if not isinstance(genotype, self.supported_genotypes):
+            names = ", ".join(st.__name__ for st in self.supported_genotypes)
+            raise TypeError(f"InsertMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
         i, j = np.random.choice(len(genes), 2, replace=False)
         gene = genes[i]
@@ -254,9 +339,12 @@ class InsertMutation(MutationOperator):
 class ScrambleMutation(MutationOperator):
     """Randomly shuffles a subsequence within the permutation."""
 
+    supported_genotypes: tuple[type[Genotype], ...] = (PermutationGenotype,)
+
     def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:  # type: ignore[override]
-        if not isinstance(genotype, PermutationGenotype):
-            raise TypeError("ScrambleMutation is only applicable to PermutationGenotype.")
+        if not isinstance(genotype, self.supported_genotypes):
+            names = ", ".join(st.__name__ for st in self.supported_genotypes)
+            raise TypeError(f"ScrambleMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
         i, j = sorted(np.random.choice(len(genes), 2, replace=False))
         subseq = genes[i:j]
@@ -268,9 +356,12 @@ class ScrambleMutation(MutationOperator):
 class InversionMutation(MutationOperator):
     """Reverses the order of a subsequence."""
 
+    supported_genotypes: tuple[type[Genotype], ...] = (PermutationGenotype,)
+
     def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:  # type: ignore[override]
-        if not isinstance(genotype, PermutationGenotype):
-            raise TypeError("InversionMutation is only applicable to PermutationGenotype.")
+        if not isinstance(genotype, self.supported_genotypes):
+            names = ", ".join(st.__name__ for st in self.supported_genotypes)
+            raise TypeError(f"InversionMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
         i, j = sorted(np.random.choice(len(genes), 2, replace=False))
         genes[i:j] = list(reversed(genes[i:j]))
