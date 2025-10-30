@@ -54,6 +54,7 @@ def test_diverse_under_minimum_termination():
         ind.genotype = BinaryGenotype(np.zeros(10, dtype=np.bool_))
     assert term.should_terminate(1, population, 0.0)
 
+
 def test_hybrid_termination():
     term1 = MaxGenerationsTermination(max_generations=5)
     term2 = FitnessThresholdTermination(fitness_threshold=0.8)

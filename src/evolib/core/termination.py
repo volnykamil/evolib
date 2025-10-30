@@ -40,7 +40,7 @@ class FitnessThresholdTermination(TerminationCondition):
 
     def should_terminate(self, generation: int, population: Population, best_fitness: float) -> bool:
         return best_fitness >= self.fitness_threshold
-    
+
 
 class StagnationTermination(TerminationCondition):
     """Terminate if there is no improvement in best fitness for a number of generations."""
@@ -98,7 +98,4 @@ class HybridTermination(TerminationCondition):
         self.conditions = conditions
 
     def should_terminate(self, generation: int, population: Population, best_fitness: float) -> bool:
-        return any(
-            condition.should_terminate(generation, population, best_fitness)
-            for condition in self.conditions
-        )
+        return any(condition.should_terminate(generation, population, best_fitness) for condition in self.conditions)
