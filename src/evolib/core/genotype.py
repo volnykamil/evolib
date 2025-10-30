@@ -209,6 +209,8 @@ class HybridGenotype(Genotype):
     """Genotype composed of multiple sub-genotypes."""
 
     def __init__(self, components: dict[str, Genotype]):
+        if not isinstance(components, dict) or not all(isinstance(v, Genotype) for v in components.values()):
+            raise TypeError("Components must be a dictionary of Genotype instances.")
         self.components = components
 
     def __eq__(self, other) -> bool:
