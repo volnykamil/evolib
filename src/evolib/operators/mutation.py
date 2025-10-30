@@ -27,9 +27,20 @@ from evolib.core.genotype import (
 # Base class
 # =============================================================================
 class MutationOperator(ABC):
-    """Abstract base class for mutation operators."""
+    """Abstract base class for mutation operators with RNG injection.
+
+    Parameters
+    ----------
+    rng : numpy.random.Generator | None, default None
+        Optional random number generator for reproducibility. If ``None`` a
+        new default generator is created (non-deterministic unless seeded
+        externally).
+    """
 
     supported_genotypes: tuple[type[Genotype], ...] = ()
+
+    def __init__(self, rng: np.random.Generator | None = None):
+        self.rng: np.random.Generator = rng if rng is not None else np.random.default_rng()
 
     @abstractmethod
     def mutate(self, genotype: Genotype) -> Genotype:
@@ -41,9 +52,13 @@ class MutationOperator(ABC):
 # HybridGenotype mutations
 # =============================================================================
 class HybridMutation(MutationOperator):
-    """Component-wise mutation (sequential)."""
+    """Component-wise mutation (sequential).
 
-    def __init__(self, operators: dict[str, MutationOperator]):
+    The provided sub-operators are expected to have their own RNG instances.
+    """
+
+    def __init__(self, operators: dict[str, MutationOperator], rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
         self.operators = operators
 
     def mutate(self, genotype: HybridGenotype) -> HybridGenotype:  # type: ignore[override]
@@ -66,9 +81,13 @@ class ParallelHybridMutation(HybridMutation):
     """
 
     def __init__(
-        self, operators: dict[str, MutationOperator], max_workers: int | None = None, persistent: bool = False
+        self,
+        operators: dict[str, MutationOperator],
+        max_workers: int | None = None,
+        persistent: bool = False,
+        rng: np.random.Generator | None = None,
     ):
-        self.operators = operators
+        super().__init__(operators=operators, rng=rng)
         self.max_workers = max_workers
         self.persistent = persistent
         self._executor = ProcessPoolExecutor(max_workers=max_workers) if persistent else None
@@ -102,7 +121,8 @@ class BitFlipMutation(MutationOperator):
 
     supported_genotypes: tuple[type[Genotype]] = (BinaryGenotype,)
 
-    def __init__(self, probability: float = 0.01):
+    def __init__(self, probability: float = 0.01, rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
         self.probability = probability
 
     def mutate(self, genotype: BinaryGenotype) -> BinaryGenotype:  # type: ignore[override]
@@ -111,7 +131,7 @@ class BitFlipMutation(MutationOperator):
             names = tuple(st.__name__ for st in self.supported_genotypes)
             raise TypeError(f"BitFlipMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
-        mask = np.random.rand(len(genes)) < self.probability
+        mask = self.rng.random(len(genes)) < self.probability
         genes[mask] = ~genes[mask]
         return BinaryGenotype(genes)
 
@@ -130,7 +150,8 @@ class GaussianMutation(MutationOperator):
 
     supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
 
-    def __init__(self, sigma: float = 0.1, probability: float = 0.1):
+    def __init__(self, sigma: float = 0.1, probability: float = 0.1, rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
         self.sigma = sigma
         self.probability = probability
 
@@ -139,8 +160,8 @@ class GaussianMutation(MutationOperator):
             names = tuple(st.__name__ for st in self.supported_genotypes)
             raise TypeError(f"GaussianMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
-        mask = np.random.rand(len(genes)) < self.probability
-        noise = np.random.normal(0, self.sigma, size=len(genes))
+        mask = self.rng.random(len(genes)) < self.probability
+        noise = self.rng.normal(0, self.sigma, size=len(genes))
         genes[mask] += noise[mask]
         low, high = genotype.bounds
         genes = np.clip(genes, low, high)
@@ -157,7 +178,8 @@ class UniformMutation(MutationOperator):
 
     supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
 
-    def __init__(self, probability: float = 0.1):
+    def __init__(self, probability: float = 0.1, rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
         self.probability = probability
 
     def mutate(self, genotype: RealGenotype) -> RealGenotype:  # type: ignore[override]
@@ -166,9 +188,9 @@ class UniformMutation(MutationOperator):
             names = ", ".join(st.__name__ for st in self.supported_genotypes)
             raise TypeError(f"UniformMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
-        mask = np.random.rand(len(genes)) < self.probability
+        mask = self.rng.random(len(genes)) < self.probability
         low, high = genotype.bounds
-        genes[mask] = np.random.uniform(low, high, size=int(np.sum(mask)))
+        genes[mask] = self.rng.uniform(low, high, size=int(np.sum(mask)))
         return RealGenotype(genes, genotype.bounds)
 
 
@@ -191,7 +213,9 @@ class NonUniformMutation(MutationOperator):
         sigma_max: float = 0.3,
         sigma_min: float = 0.01,
         probability: float = 0.1,
+        rng: np.random.Generator | None = None,
     ):
+        super().__init__(rng=rng)
         assert 0.0 <= progress <= 1.0, "Progress must be in [0,1]"
         self.progress = progress
         self.sigma_max = sigma_max
@@ -203,9 +227,9 @@ class NonUniformMutation(MutationOperator):
             names = ", ".join(st.__name__ for st in self.supported_genotypes)
             raise TypeError(f"NonUniformMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
-        mask = np.random.rand(len(genes)) < self.probability
+        mask = self.rng.random(len(genes)) < self.probability
         sigma = self.sigma_max * (1 - self.progress) + self.sigma_min * self.progress
-        noise = np.random.normal(0, sigma, size=len(genes))
+        noise = self.rng.normal(0, sigma, size=len(genes))
         genes[mask] += noise[mask]
         low, high = genotype.bounds
         genes = np.clip(genes, low, high)
@@ -225,7 +249,8 @@ class UniformIntegerMutation(MutationOperator):
 
     supported_genotypes: tuple[type[Genotype], ...] = (IntegerGenotype,)
 
-    def __init__(self, probability: float = 0.1):
+    def __init__(self, probability: float = 0.1, rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
         self.probability = probability
 
     def mutate(self, genotype: IntegerGenotype) -> IntegerGenotype:  # type: ignore[override]
@@ -233,9 +258,9 @@ class UniformIntegerMutation(MutationOperator):
             names = ", ".join(st.__name__ for st in self.supported_genotypes)
             raise TypeError(f"UniformIntegerMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
-        mask = np.random.rand(len(genes)) < self.probability
+        mask = self.rng.random(len(genes)) < self.probability
         low, high = genotype.bounds
-        genes[mask] = np.random.randint(low, high + 1, size=int(np.sum(mask)))
+        genes[mask] = self.rng.integers(low, high + 1, size=int(np.sum(mask)), dtype=genes.dtype)
         return IntegerGenotype(genes, genotype.bounds)
 
 
@@ -250,7 +275,8 @@ class CreepIntegerMutation(MutationOperator):
 
     supported_genotypes: tuple[type[Genotype], ...] = (IntegerGenotype,)
 
-    def __init__(self, delta: int = 1, probability: float = 0.1):
+    def __init__(self, delta: int = 1, probability: float = 0.1, rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
         self.delta = delta
         self.probability = probability
 
@@ -259,8 +285,8 @@ class CreepIntegerMutation(MutationOperator):
             names = ", ".join(st.__name__ for st in self.supported_genotypes)
             raise TypeError(f"CreepIntegerMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
-        mask = np.random.rand(len(genes)) < self.probability
-        noise = np.random.randint(-self.delta, self.delta + 1, size=len(genes))
+        mask = self.rng.random(len(genes)) < self.probability
+        noise = self.rng.integers(-self.delta, self.delta + 1, size=len(genes))
         genes[mask] += noise[mask]
         low, high = genotype.bounds
         genes = np.clip(genes, low, high)
@@ -280,7 +306,15 @@ class NonUniformIntegerMutation(MutationOperator):
 
     supported_genotypes: tuple[type[Genotype], ...] = (IntegerGenotype,)
 
-    def __init__(self, progress: float, delta_max: int = 5, delta_min: int = 1, probability: float = 0.1):
+    def __init__(
+        self,
+        progress: float,
+        delta_max: int = 5,
+        delta_min: int = 1,
+        probability: float = 0.1,
+        rng: np.random.Generator | None = None,
+    ):
+        super().__init__(rng=rng)
         assert 0.0 <= progress <= 1.0
         self.progress = progress
         self.delta_max = delta_max
@@ -292,9 +326,9 @@ class NonUniformIntegerMutation(MutationOperator):
             names = ", ".join(st.__name__ for st in self.supported_genotypes)
             raise TypeError(f"NonUniformIntegerMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
-        mask = np.random.rand(len(genes)) < self.probability
+        mask = self.rng.random(len(genes)) < self.probability
         delta = round(self.delta_max * (1 - self.progress) + self.delta_min * self.progress)
-        noise = np.random.randint(-delta, delta + 1, size=len(genes))
+        noise = self.rng.integers(-delta, delta + 1, size=len(genes))
         genes[mask] += noise[mask]
         low, high = genotype.bounds
         genes = np.clip(genes, low, high)
@@ -309,12 +343,15 @@ class SwapMutation(MutationOperator):
 
     supported_genotypes: tuple[type[Genotype], ...] = (PermutationGenotype,)
 
+    def __init__(self, rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
+
     def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:  # type: ignore[override]
         if not isinstance(genotype, self.supported_genotypes):
             names = ", ".join(st.__name__ for st in self.supported_genotypes)
             raise TypeError(f"SwapMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
-        i, j = np.random.choice(len(genes), 2, replace=False)
+        i, j = self.rng.choice(len(genes), 2, replace=False)
         genes[i], genes[j] = genes[j], genes[i]
         return PermutationGenotype(genes)
 
@@ -324,12 +361,15 @@ class InsertMutation(MutationOperator):
 
     supported_genotypes: tuple[type[Genotype], ...] = (PermutationGenotype,)
 
+    def __init__(self, rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
+
     def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:  # type: ignore[override]
         if not isinstance(genotype, self.supported_genotypes):
             names = ", ".join(st.__name__ for st in self.supported_genotypes)
             raise TypeError(f"InsertMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
-        i, j = np.random.choice(len(genes), 2, replace=False)
+        i, j = self.rng.choice(len(genes), 2, replace=False)
         gene = genes[i]
         genes = np.delete(genes, i)
         genes = np.insert(genes, j, gene)
@@ -341,14 +381,17 @@ class ScrambleMutation(MutationOperator):
 
     supported_genotypes: tuple[type[Genotype], ...] = (PermutationGenotype,)
 
+    def __init__(self, rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
+
     def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:  # type: ignore[override]
         if not isinstance(genotype, self.supported_genotypes):
             names = ", ".join(st.__name__ for st in self.supported_genotypes)
             raise TypeError(f"ScrambleMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
-        i, j = sorted(np.random.choice(len(genes), 2, replace=False))
+        i, j = sorted(self.rng.choice(len(genes), 2, replace=False))
         subseq = genes[i:j]
-        np.random.shuffle(subseq)
+        self.rng.shuffle(subseq)
         genes[i:j] = subseq
         return PermutationGenotype(genes)
 
@@ -358,11 +401,14 @@ class InversionMutation(MutationOperator):
 
     supported_genotypes: tuple[type[Genotype], ...] = (PermutationGenotype,)
 
+    def __init__(self, rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
+
     def mutate(self, genotype: PermutationGenotype) -> PermutationGenotype:  # type: ignore[override]
         if not isinstance(genotype, self.supported_genotypes):
             names = ", ".join(st.__name__ for st in self.supported_genotypes)
             raise TypeError(f"InversionMutation is only applicable to {names}.")
         genes = genotype.genes.copy()
-        i, j = sorted(np.random.choice(len(genes), 2, replace=False))
+        i, j = sorted(self.rng.choice(len(genes), 2, replace=False))
         genes[i:j] = list(reversed(genes[i:j]))
         return PermutationGenotype(genes)

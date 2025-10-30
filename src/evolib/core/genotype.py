@@ -57,9 +57,21 @@ class BinaryGenotype(Genotype):
             raise TypeError(f"BinaryGenotype genes must be boolean (np.bool_), got dtype={genes.dtype}.")
 
     @classmethod
-    def random(cls, length: int, p: float = 0.5) -> BinaryGenotype:
-        genes = np.random.rand(length) < p
-        return cls(genes)
+    def random(cls, length: int, p: float = 0.5, rng: np.random.Generator | None = None) -> BinaryGenotype:
+        """Create a random binary genotype.
+
+        Parameters
+        ----------
+        length : int
+            Number of bits.
+        p : float, default 0.5
+            Probability that a bit is True.
+        rng : numpy.random.Generator | None, default None
+            Optional RNG for reproducibility. Falls back to global ``np.random`` if None.
+        """
+        _rng = rng if rng is not None else np.random.default_rng()
+        genes = _rng.random(length) < p
+        return cls(genes.astype(np.bool_))
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, BinaryGenotype):
@@ -96,9 +108,23 @@ class RealGenotype(Genotype):
         self.bounds: tuple[float, float] = bounds
 
     @classmethod
-    def random(cls, length: int, bounds: tuple[float, float] = (0.0, 1.0)) -> RealGenotype:
+    def random(
+        cls, length: int, bounds: tuple[float, float] = (0.0, 1.0), rng: np.random.Generator | None = None
+    ) -> RealGenotype:
+        """Create a random real-valued genotype.
+
+        Parameters
+        ----------
+        length : int
+            Number of genes.
+        bounds : tuple[float, float], default (0.0, 1.0)
+            Inclusive lower and upper bounds for uniform sampling.
+        rng : numpy.random.Generator | None, default None
+            Optional RNG for reproducibility. Falls back to global ``np.random`` if None.
+        """
         low, high = bounds
-        genes = np.random.uniform(low, high, size=length).astype(np.float64)
+        _rng = rng if rng is not None else np.random.default_rng()
+        genes = _rng.uniform(low, high, size=length).astype(np.float64)
         return cls(genes, bounds)
 
     def __eq__(self, other) -> bool:
@@ -136,9 +162,23 @@ class IntegerGenotype(Genotype):
         self.bounds: tuple[int, int] = bounds
 
     @classmethod
-    def random(cls, length: int, bounds: tuple[int, int] = (0, 10)) -> IntegerGenotype:
+    def random(
+        cls, length: int, bounds: tuple[int, int] = (0, 10), rng: np.random.Generator | None = None
+    ) -> IntegerGenotype:
+        """Create a random integer genotype.
+
+        Parameters
+        ----------
+        length : int
+            Number of genes.
+        bounds : tuple[int, int], default (0, 10)
+            Inclusive lower and upper bounds for uniform integer sampling.
+        rng : numpy.random.Generator | None, default None
+            Optional RNG for reproducibility. Falls back to global ``np.random`` if None.
+        """
         low, high = bounds
-        genes = np.random.randint(low, high + 1, size=length).astype(np.int32)
+        _rng = rng if rng is not None else np.random.default_rng()
+        genes = _rng.integers(low, high + 1, size=length, dtype=np.int32)
         return cls(genes, bounds)
 
     def __eq__(self, other) -> bool:
@@ -178,8 +218,18 @@ class PermutationGenotype(Genotype):
         self.genes: np.ndarray = genes.astype(np.int32)
 
     @classmethod
-    def random(cls, length: int) -> PermutationGenotype:
-        genes = np.random.permutation(length).astype(np.int32)
+    def random(cls, length: int, rng: np.random.Generator | None = None) -> PermutationGenotype:
+        """Create a random permutation genotype.
+
+        Parameters
+        ----------
+        length : int
+            Size of the permutation (values 0..length-1).
+        rng : numpy.random.Generator | None, default None
+            Optional RNG for reproducibility. Falls back to global ``np.random`` if None.
+        """
+        _rng = rng if rng is not None else np.random.default_rng()
+        genes = _rng.permutation(length).astype(np.int32)
         return cls(genes)
 
     def __eq__(self, other) -> bool:

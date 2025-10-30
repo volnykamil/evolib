@@ -27,9 +27,19 @@ from evolib.core.genotype import (
 # Base class
 # =============================================================================
 class CrossoverOperator(ABC):
-    """Abstract base class for crossover operators."""
+    """Abstract base class for crossover operators supporting RNG injection.
+
+    Parameters
+    ----------
+    rng : numpy.random.Generator | None, default None
+        Optional RNG for deterministic behavior. If ``None`` a new default
+        generator is created.
+    """
 
     supported_genotypes: tuple[type[Genotype], ...] = ()
+
+    def __init__(self, rng: np.random.Generator | None = None):
+        self.rng: np.random.Generator = rng if rng is not None else np.random.default_rng()
 
     @abstractmethod
     def crossover(self, parent1: Genotype, parent2: Genotype) -> tuple[Genotype, Genotype]:
@@ -41,9 +51,13 @@ class CrossoverOperator(ABC):
 # HybridGenotype crossovers
 # =============================================================================
 class HybridCrossover(CrossoverOperator):
-    """Sequential component-wise crossover."""
+    """Sequential component-wise crossover.
 
-    def __init__(self, operators: dict[str, CrossoverOperator]):
+    Sub-operators may each have their own RNG; this wrapper's RNG is unused.
+    """
+
+    def __init__(self, operators: dict[str, CrossoverOperator], rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
         self.operators = operators
 
     def crossover(self, parent1: HybridGenotype, parent2: HybridGenotype) -> tuple[HybridGenotype, HybridGenotype]:  # type: ignore[override]
@@ -91,7 +105,11 @@ class ParallelHybridCrossover:
     """
 
     def __init__(
-        self, operators: dict[str, CrossoverOperator], max_workers: int | None = None, persistent: bool = False
+        self,
+        operators: dict[str, CrossoverOperator],
+        max_workers: int | None = None,
+        persistent: bool = False,
+        rng: np.random.Generator | None = None,
     ):
         """
         Args:
@@ -103,6 +121,7 @@ class ParallelHybridCrossover:
         self.max_workers = max_workers
         self.persistent = persistent
         self._executor = ProcessPoolExecutor(max_workers=max_workers) if persistent else None
+        self.rng = rng if rng is not None else np.random.default_rng()
 
     def crossover(self, parent1: HybridGenotype, parent2: HybridGenotype) -> tuple[HybridGenotype, HybridGenotype]:
         """
@@ -157,7 +176,7 @@ class OnePointCrossover(CrossoverOperator):
     def crossover(self, p1: Genotype, p2: Genotype):
         if type(p1) is not type(p2):
             raise TypeError("Parents must be of the same genotype type.")
-        point = np.random.randint(1, len(p1.genes))
+        point = self.rng.integers(1, len(p1.genes))
         c1_genes = np.concatenate([p1.genes[:point], p2.genes[point:]])
         c2_genes = np.concatenate([p2.genes[:point], p1.genes[point:]])
         if isinstance(p1, RealGenotype):
@@ -183,7 +202,7 @@ class TwoPointCrossover(CrossoverOperator):
     def crossover(self, p1: Genotype, p2: Genotype):
         if type(p1) is not type(p2):
             raise TypeError("Parents must be of the same genotype type.")
-        a, b = sorted(np.random.choice(range(len(p1.genes)), 2, replace=False))
+        a, b = sorted(self.rng.choice(range(len(p1.genes)), 2, replace=False))
         c1_genes = p1.genes.copy()
         c2_genes = p2.genes.copy()
         c1_genes[a:b], c2_genes[a:b] = p2.genes[a:b], p1.genes[a:b]
@@ -205,12 +224,13 @@ class UniformCrossover(CrossoverOperator):
     supported_genotypes: tuple[type[Genotype], ...] = (BinaryGenotype, RealGenotype, IntegerGenotype)
 
     def __init__(self, probability: float = 0.5):
+        super().__init__()
         self.probability = probability
 
     def crossover(self, p1: Genotype, p2: Genotype):
         if type(p1) is not type(p2):
             raise TypeError("Parents must be of the same genotype type.")
-        mask = np.random.rand(len(p1.genes)) < self.probability
+        mask = self.rng.random(len(p1.genes)) < self.probability
         c1_genes = np.where(mask, p1.genes, p2.genes)
         c2_genes = np.where(mask, p2.genes, p1.genes)
         if isinstance(p1, RealGenotype):
@@ -238,6 +258,7 @@ class ArithmeticCrossover(CrossoverOperator):
     supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
 
     def __init__(self, alpha: float = 0.5):
+        super().__init__()
         self.alpha = alpha
 
     def crossover(self, p1: RealGenotype, p2: RealGenotype):  # type: ignore[override]
@@ -262,6 +283,7 @@ class BlendCrossover(CrossoverOperator):
     supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
 
     def __init__(self, alpha: float = 0.5):
+        super().__init__()
         self.alpha = alpha
 
     def crossover(self, p1: RealGenotype, p2: RealGenotype):  # type: ignore[override]
@@ -271,8 +293,8 @@ class BlendCrossover(CrossoverOperator):
         diff = high - low
         lower = low - self.alpha * diff
         upper = high + self.alpha * diff
-        c1_genes = np.random.uniform(lower, upper)
-        c2_genes = np.random.uniform(lower, upper)
+        c1_genes = self.rng.uniform(lower, upper)
+        c2_genes = self.rng.uniform(lower, upper)
         clip_low, clip_high = p1.bounds
         c1_genes = np.clip(c1_genes, clip_low, clip_high)
         c2_genes = np.clip(c2_genes, clip_low, clip_high)
@@ -290,6 +312,7 @@ class SimulatedBinaryCrossover(CrossoverOperator):
     supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
 
     def __init__(self, eta: float = 15.0, probability: float = 1.0):
+        super().__init__()
         self.eta = eta
         self.probability = probability
 
@@ -299,12 +322,12 @@ class SimulatedBinaryCrossover(CrossoverOperator):
         c1_genes = p1.genes.copy()
         c2_genes = p2.genes.copy()
         for i in range(len(p1.genes)):
-            if np.random.rand() < self.probability:
+            if self.rng.random() < self.probability:
                 y1, y2 = min(p1.genes[i], p2.genes[i]), max(p1.genes[i], p2.genes[i])
                 if y1 == y2:
                     continue
                 low, high = p1.bounds
-                rand = np.random.rand()
+                rand = self.rng.random()
                 beta = 1.0 + (2.0 * (y1 - low) / (y2 - y1))
                 alpha = 2.0 - beta ** -(self.eta + 1)
                 if rand <= 1.0 / alpha:
@@ -333,7 +356,7 @@ class OrderCrossover(CrossoverOperator):
         if not isinstance(p1, self.supported_genotypes) or not isinstance(p2, self.supported_genotypes):
             raise TypeError(f"OrderCrossover is only applicable to {self.supported_genotypes}.")
         n = len(p1.genes)
-        a, b = sorted(np.random.choice(range(n), 2, replace=False))
+        a, b = sorted(self.rng.choice(range(n), 2, replace=False))
         c1 = [-1] * n
         c2 = [-1] * n
         c1[a:b], c2[a:b] = p1.genes[a:b], p2.genes[a:b]
@@ -361,7 +384,7 @@ class PartiallyMappedCrossover(CrossoverOperator):
         if not isinstance(p1, self.supported_genotypes) or not isinstance(p2, self.supported_genotypes):
             raise TypeError(f"PMX is only applicable to {self.supported_genotypes}.")
         n = len(p1.genes)
-        a, b = sorted(np.random.choice(range(n), 2, replace=False))
+        a, b = sorted(self.rng.choice(range(n), 2, replace=False))
 
         # Initialize offspring
         c1, c2 = np.full(n, -1, dtype=int), np.full(n, -1, dtype=int)
@@ -449,7 +472,7 @@ class EdgeRecombinationCrossover(CrossoverOperator):
 
         def generate_child(edges):
             remaining = set(edges.keys())
-            current = np.random.choice(list(remaining))
+            current = self.rng.choice(list(remaining))
             child = [current]
             remaining.remove(current)
             while remaining:
@@ -458,7 +481,7 @@ class EdgeRecombinationCrossover(CrossoverOperator):
                 if edges[current]:
                     next_gene = min(edges[current], key=lambda x: len(edges[x]))
                 else:
-                    next_gene = np.random.choice(list(remaining))
+                    next_gene = self.rng.choice(list(remaining))
                 child.append(next_gene)
                 remaining.remove(next_gene)
                 current = next_gene
