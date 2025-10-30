@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 from evolib.core.genotype import BinaryGenotype
-from evolib.core.individual import Individual, Population
+from evolib.core.individual import Individual
 from evolib.core.termination import (
     DiverseUnderMinimumTermination,
     FitnessThresholdTermination,
