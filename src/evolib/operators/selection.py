@@ -21,6 +21,7 @@ from collections.abc import Sequence
 
 import numpy as np
 
+from evolib.core.distance import genotype_distance, normalized_genotype_distance
 from evolib.core.individual import Individual, Population
 
 
@@ -162,32 +163,56 @@ class BoltzmannSelection(SelectionStrategy):
 
 
 class FitnessSharingSelection(SelectionStrategy):
-    """
-    Fitness Sharing / Niching.
-    Promotes diversity by penalizing individuals similar to others.
+    """Fitness Sharing / Niching.
+
+    Promotes diversity by penalizing individuals similar to others. Supports
+    two distance metrics:
+
+    distance_metric: 'fitness' (default) uses |f_i - f_j|.
+                     'genotype' uses genotype distance (see core.distance).
+    normalize_distances: When True and using genotype distance, distances are
+        normalized to [0,1] before sharing; this makes sigma_share easier to
+        interpret across problems.
     """
 
-    def __init__(self, sigma_share: float = 1.0):
+    def __init__(
+        self,
+        sigma_share: float = 1.0,
+        *,
+        distance_metric: str = "fitness",
+        normalize_distances: bool = False,
+    ) -> None:
         self.sigma_share = sigma_share
+        self.distance_metric = distance_metric
+        self.normalize_distances = normalize_distances
+
+    def _pair_distance(self, a: Individual, b: Individual) -> float:
+        if self.distance_metric == "fitness":
+            return abs(a.fitness - b.fitness)
+        elif self.distance_metric == "genotype":
+            if self.normalize_distances:
+                return normalized_genotype_distance(a.genotype, b.genotype)
+            return genotype_distance(a.genotype, b.genotype)
+        else:  # pragma: no cover - defensive
+            raise ValueError("distance_metric must be 'fitness' or 'genotype'")
 
     def select(self, population: Population, n_parents: int) -> Population:
         self._validate(population, n_parents)
         if self.sigma_share <= 0:
             raise ValueError("sigma_share must be > 0")
-        fitness = np.array([ind.fitness for ind in population], dtype=float)
-        # Compute niche counts (using fitness distance
-        # could extend to genotype distance if available)
-        niche_counts = np.zeros(len(population))
-        for i in range(len(population)):
-            for j in range(len(population)):
-                distance = abs(fitness[i] - fitness[j])
+        n = len(population)
+        raw_fitness = np.array([ind.fitness for ind in population], dtype=float)
+        niche_counts = np.zeros(n)
+        for i in range(n):
+            for j in range(n):
+                distance = self._pair_distance(population[i], population[j])
                 if distance < self.sigma_share:
                     niche_counts[i] += 1 - (distance / self.sigma_share)
             niche_counts[i] = max(niche_counts[i], 1.0)
-        shared_fitness = fitness / niche_counts
+        shared_fitness = raw_fitness / niche_counts
         shared_fitness = np.maximum(shared_fitness, 1e-12)
         probs = shared_fitness / np.sum(shared_fitness)
-        selected_indices = np.random.choice(len(population), size=n_parents, replace=True, p=probs)
+        selected_indices = np.random.choice(n, size=n_parents, replace=True, p=probs)
         return Population([population[i] for i in selected_indices])
 
 
