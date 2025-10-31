@@ -192,11 +192,13 @@ class ElitismReplacement(ReplacementStrategy):
 
 class AgeBasedReplacement(ReplacementStrategy):
     """
-    Replaces individuals based on their age.
+    Age-based survival: keeps the youngest individuals and removes the oldest first.
 
-    - Each individual should have an 'age' attribute.
-    - Oldest individuals are removed first.
-    - Helps maintain evolutionary diversity.
+    Semantics
+    ---------
+    - Each individual must have an ``age`` attribute (generations survived).
+    - Population is sorted ascending by age; the first ``population_size`` (youngest) survive.
+    - This promotes turnover and helps maintain diversity by preventing very old individuals from dominating.
     """
 
     def replace(self, parents: Population, offspring: Population, population_size: int) -> Population:

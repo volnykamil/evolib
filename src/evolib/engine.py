@@ -39,16 +39,37 @@ class GAConfig:
     checkpoint_interval_seconds: int | None = None
 
     def __post_init__(self) -> None:
+        """Validate configuration parameters early to fail fast.
+
+        Rules
+        -----
+        - population_size > 0
+        - 0 <= elitism <= population_size
+        - crossover_rate, mutation_rate in [0,1]
+        - num_workers is None or >= 0
+        - executor_type in {"process", "thread", "custom"}
+        - checkpoint_interval_seconds is None or > 0
+        - seed is None or >= 0
+        """
         if self.population_size <= 0:
             raise ValueError("population_size must be > 0")
+        if self.elitism < 0:
+            raise ValueError("elitism must be >= 0")
+        if self.elitism > self.population_size:
+            raise ValueError("elitism cannot exceed population_size")
         if not (0.0 <= self.crossover_rate <= 1.0):
-            raise ValueError("crossover_rate must be in [0.0, 1.0]")
+            raise ValueError("crossover_rate must be in [0,1]")
         if not (0.0 <= self.mutation_rate <= 1.0):
-            raise ValueError("mutation_rate must be in [0.0, 1.0]")
-        if self.elitism < 0 or self.elitism >= self.population_size:
-            raise ValueError("elitism must be >= 0 and < population_size")
-        if self.executor_type not in ("process", "thread", "custom"):
-            raise ValueError("executor_type must be 'process', 'thread', or 'custom'")
+            raise ValueError("mutation_rate must be in [0,1]")
+        if self.num_workers is not None and self.num_workers < 0:
+            raise ValueError("num_workers must be >= 0 or None")
+        if self.executor_type not in {"process", "thread", "custom"}:
+            raise ValueError("executor_type must be one of {'process','thread','custom'}")
+        if self.checkpoint_interval_seconds is not None and self.checkpoint_interval_seconds <= 0:
+            raise ValueError("checkpoint_interval_seconds must be > 0 if provided")
+        if self.seed is not None and self.seed < 0:
+            raise ValueError("seed must be >= 0 if provided")
+
 
 
 @dataclass
