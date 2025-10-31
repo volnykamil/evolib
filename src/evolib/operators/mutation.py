@@ -122,6 +122,8 @@ class BitFlipMutation(MutationOperator):
     supported_genotypes: tuple[type[Genotype]] = (BinaryGenotype,)
 
     def __init__(self, probability: float = 0.01, rng: np.random.Generator | None = None):
+        if not (0.0 <= probability <= 1.0):
+            raise ValueError("probability must be in [0,1]")
         super().__init__(rng=rng)
         self.probability = probability
 
@@ -151,6 +153,10 @@ class GaussianMutation(MutationOperator):
     supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
 
     def __init__(self, sigma: float = 0.1, probability: float = 0.1, rng: np.random.Generator | None = None):
+        if sigma <= 0:
+            raise ValueError("sigma must be > 0")
+        if not (0.0 <= probability <= 1.0):
+            raise ValueError("probability must be in [0,1]")
         super().__init__(rng=rng)
         self.sigma = sigma
         self.probability = probability
@@ -179,6 +185,8 @@ class UniformMutation(MutationOperator):
     supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
 
     def __init__(self, probability: float = 0.1, rng: np.random.Generator | None = None):
+        if not (0.0 <= probability <= 1.0):
+            raise ValueError("probability must be in [0,1]")
         super().__init__(rng=rng)
         self.probability = probability
 
@@ -215,8 +223,15 @@ class NonUniformMutation(MutationOperator):
         probability: float = 0.1,
         rng: np.random.Generator | None = None,
     ):
+        if not (0.0 <= progress <= 1.0):
+            raise ValueError("progress must be in [0,1]")
+        if sigma_max <= 0 or sigma_min <= 0:
+            raise ValueError("sigma_max and sigma_min must be > 0")
+        if sigma_min > sigma_max:
+            raise ValueError("sigma_min must be <= sigma_max")
+        if not (0.0 <= probability <= 1.0):
+            raise ValueError("probability must be in [0,1]")
         super().__init__(rng=rng)
-        assert 0.0 <= progress <= 1.0, "Progress must be in [0,1]"
         self.progress = progress
         self.sigma_max = sigma_max
         self.sigma_min = sigma_min
@@ -250,6 +265,8 @@ class UniformIntegerMutation(MutationOperator):
     supported_genotypes: tuple[type[Genotype], ...] = (IntegerGenotype,)
 
     def __init__(self, probability: float = 0.1, rng: np.random.Generator | None = None):
+        if not (0.0 <= probability <= 1.0):
+            raise ValueError("probability must be in [0,1]")
         super().__init__(rng=rng)
         self.probability = probability
 
@@ -276,6 +293,10 @@ class CreepIntegerMutation(MutationOperator):
     supported_genotypes: tuple[type[Genotype], ...] = (IntegerGenotype,)
 
     def __init__(self, delta: int = 1, probability: float = 0.1, rng: np.random.Generator | None = None):
+        if delta <= 0:
+            raise ValueError("delta must be > 0")
+        if not (0.0 <= probability <= 1.0):
+            raise ValueError("probability must be in [0,1]")
         super().__init__(rng=rng)
         self.delta = delta
         self.probability = probability
@@ -314,8 +335,15 @@ class NonUniformIntegerMutation(MutationOperator):
         probability: float = 0.1,
         rng: np.random.Generator | None = None,
     ):
+        if not (0.0 <= progress <= 1.0):
+            raise ValueError("progress must be in [0,1]")
+        if delta_max <= 0 or delta_min <= 0:
+            raise ValueError("delta_max and delta_min must be > 0")
+        if delta_min > delta_max:
+            raise ValueError("delta_min must be <= delta_max")
+        if not (0.0 <= probability <= 1.0):
+            raise ValueError("probability must be in [0,1]")
         super().__init__(rng=rng)
-        assert 0.0 <= progress <= 1.0
         self.progress = progress
         self.delta_max = delta_max
         self.delta_min = delta_min

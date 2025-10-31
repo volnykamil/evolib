@@ -224,6 +224,8 @@ class UniformCrossover(CrossoverOperator):
     supported_genotypes: tuple[type[Genotype], ...] = (BinaryGenotype, RealGenotype, IntegerGenotype)
 
     def __init__(self, probability: float = 0.5):
+        if not (0.0 <= probability <= 1.0):
+            raise ValueError("probability must be in [0,1]")
         super().__init__()
         self.probability = probability
 
@@ -258,6 +260,8 @@ class ArithmeticCrossover(CrossoverOperator):
     supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
 
     def __init__(self, alpha: float = 0.5):
+        if not (0.0 <= alpha <= 1.0):
+            raise ValueError("alpha must be in [0,1]")
         super().__init__()
         self.alpha = alpha
 
@@ -283,6 +287,8 @@ class BlendCrossover(CrossoverOperator):
     supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
 
     def __init__(self, alpha: float = 0.5):
+        if not (0.0 <= alpha <= 1.0):
+            raise ValueError("alpha must be in [0,1]")
         super().__init__()
         self.alpha = alpha
 
@@ -312,6 +318,10 @@ class SimulatedBinaryCrossover(CrossoverOperator):
     supported_genotypes: tuple[type[Genotype], ...] = (RealGenotype,)
 
     def __init__(self, eta: float = 15.0, probability: float = 1.0):
+        if eta <= 0:
+            raise ValueError("eta must be > 0")
+        if not (0.0 <= probability <= 1.0):
+            raise ValueError("probability must be in [0,1]")
         super().__init__()
         self.eta = eta
         self.probability = probability
