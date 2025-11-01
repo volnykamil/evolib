@@ -95,6 +95,11 @@ class GAEngineError(RuntimeError):
 # ---------------------------------------------------------------------------
 
 
+def _evaluate_individual(ind: Individual, evaluator: Callable[[Individual], float]) -> float:
+    """Top-level helper for process pool pickling: evaluate one Individual."""
+    return float(evaluator(ind))
+
+
 class GAEngine:
     def __init__(  # noqa: PLR0913
         self,
@@ -137,10 +142,14 @@ class GAEngine:
     def run(
         self, fitness_fn: Callable[[Individual], float] | None = None, initial_population: Population | None = None
     ) -> Population:
-        """Run the GA until termination condition triggers. Returns final population.
+        """Run the GA until termination condition triggers and return final population.
 
-        fitness_fn: user-defined function that maps Individual -> fitness (float).
-        initial_population: optional seed population; if None, engine must be seeded by user.
+        Parameters
+        ----------
+        fitness_fn : Callable[[Individual], float] | None
+            Optional evaluator override; must accept an Individual and return a numeric fitness.
+        initial_population : Population | None
+            Seed population. If omitted, ``self.population`` must already be populated.
         """
         if initial_population is not None:
             self.population = initial_population
@@ -265,38 +274,29 @@ class GAEngine:
             return
         if self._user_evaluator is None:
             raise GAEngineError("No fitness evaluator set.")
+        evaluator = self._user_evaluator
 
-        # If using ProcessPoolExecutor, map only genotypes to avoid pickling self/closures
-        if isinstance(self._executor, ProcessPoolExecutor):
-            genotypes = [ind.genotype for ind in individuals]
-            results = list(self._executor.map(self._user_evaluator, genotypes))
-            for ind, res in zip(individuals, results, strict=False):
-                try:
-                    ind.fitness = float(res)
-                except Exception:
-                    ind.fitness = float("-inf")
-                    self.logger.exception("Fitness evaluation error; setting -inf")
+        try:
+            if isinstance(self._executor, ProcessPoolExecutor):
+                # Submit Individuals directly using top-level helper for picklability
+                results = list(self._executor.map(lambda ind: _evaluate_individual(ind, evaluator), individuals))
+            elif isinstance(self._executor, ThreadPoolExecutor):
+                results = list(self._executor.map(evaluator, individuals))
+            else:  # synchronous
+                results = [evaluator(ind) for ind in individuals]
+        except Exception:
+            # Catastrophic evaluator failure; mark all as -inf and log once
+            self.logger.exception("Evaluator batch failed; marking individuals with -inf")
+            for ind in individuals:
+                ind.fitness = float("-inf")
             return
 
-        # ThreadPoolExecutor or synchronous
-        if isinstance(self._executor, ThreadPoolExecutor):
-            genotypes = [ind.genotype for ind in individuals]
-            results = list(self._executor.map(self._user_evaluator, individuals))
-            for ind, res in zip(individuals, results, strict=False):
-                try:
-                    ind.fitness = float(res)
-                except Exception:
-                    ind.fitness = float("-inf")
-                    self.logger.exception("Fitness evaluation error; setting -inf")
-            return
-
-        # synchronous fallback
-        for ind in individuals:
+        for ind, res in zip(individuals, results, strict=False):
             try:
-                ind.fitness = float(self._user_evaluator(ind))
+                ind.fitness = float(res)
             except Exception:
                 ind.fitness = float("-inf")
-                self.logger.exception("Fitness evaluation failed; setting -inf")
+                self.logger.exception("Fitness evaluation error for one individual; setting -inf")
 
     def _update_stats(self) -> None:
         scores = [ind.fitness for ind in self.population if ind.fitness is not None and not math.isnan(ind.fitness)]
