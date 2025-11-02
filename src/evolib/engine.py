@@ -73,7 +73,6 @@ class GAConfig:
             raise ValueError("seed must be >= 0 if provided")
 
 
-
 @dataclass
 class GAStats:
     generation: int = 0
