@@ -25,6 +25,8 @@ from evolib.operators.selection import SelectionStrategy
 # Engine config & stats
 # ---------------------------------------------------------------------------
 
+CHECKPOINT_VERSION = 1
+
 
 @dataclass
 class GAConfig:
@@ -197,6 +199,7 @@ class GAEngine:
     def save_state(self, path: Path) -> None:
         tmp = path.with_suffix(path.suffix + ".tmp")
         state = {
+            "version": CHECKPOINT_VERSION,
             "config": dataclasses.asdict(self.config),
             "generation": self.generation,
             "population": self.population,
@@ -209,14 +212,19 @@ class GAEngine:
         os.replace(tmp, path)  # atomic rename
         self.logger.info("Saved checkpoint to %s", path)
 
-    def load_state(self, path: Path) -> None:
+    def load_state(self, path: Path, *, strict: bool = True) -> None:
         with open(path, "rb") as fh:
             state = pickle.load(fh)
-        # Basic validation
+        version = state.get("version")
+        if version != CHECKPOINT_VERSION:
+            msg = f"Checkpoint version mismatch: expected {CHECKPOINT_VERSION}, found {version}."
+            if strict:
+                raise GAEngineError(msg)
+            self.logger.warning(msg + " Proceeding in non-strict mode.")
         self.generation = state["generation"]
         self.population = state["population"]
         self.stats = state["stats"]
-        self.logger.info("Loaded checkpoint from %s", path)
+        self.logger.info("Loaded checkpoint (v%s) from %s", version, path)
 
     # -----------------------------
     # Internal helpers
