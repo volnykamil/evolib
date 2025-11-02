@@ -26,12 +26,20 @@ from evolib.core.individual import Individual, Population
 
 
 class SelectionStrategy:
-    """Base class for all selection strategies."""
+    """Base class for all selection strategies with RNG injection.
+
+    Parameters
+    ----------
+    rng : numpy.random.Generator | None
+        Optional RNG. If not provided, a new default generator is created.
+    """
+
+    def __init__(self, rng: np.random.Generator | None = None) -> None:
+        self.rng: np.random.Generator = rng if rng is not None else np.random.default_rng()
 
     def select(self, population: Population, n_parents: int) -> Population:  # pragma: no cover (interface)
         raise NotImplementedError("SelectionStrategy must implement select().")
 
-    # Common input validation helper
     @staticmethod
     def _validate(population: Sequence[Individual], n_parents: int) -> None:
         if len(population) == 0:
@@ -51,7 +59,7 @@ class RouletteWheelSelection(SelectionStrategy):
         fitness = np.array([ind.fitness for ind in population], dtype=float)
         total_fitness = float(np.sum(fitness))
         probs = np.full(len(population), 1.0 / len(population)) if total_fitness <= 0.0 else fitness / total_fitness
-        selected_indices = np.random.choice(len(population), size=n_parents, replace=True, p=probs)
+        selected_indices = self.rng.choice(len(population), size=n_parents, replace=True, p=probs)
         return Population([population[i] for i in selected_indices])
 
 
@@ -68,7 +76,7 @@ class StochasticUniversalSampling(SelectionStrategy):
         probs = np.full(len(population), 1.0 / len(population)) if total_fitness <= 0.0 else fitness / total_fitness
         cumulative = np.cumsum(probs)
         step = 1.0 / n_parents
-        start = np.random.uniform(0.0, step)
+        start = self.rng.uniform(0.0, step)
         pointers = start + step * np.arange(n_parents)
         selected: list[Individual] = []
         i = 0
@@ -88,9 +96,9 @@ class RankSelection(SelectionStrategy):
     def select(self, population: Population, n_parents: int) -> Population:
         self._validate(population, n_parents)
         fitness = np.array([ind.fitness for ind in population], dtype=float)
-        ranks = np.argsort(np.argsort(fitness)) + 1  # rank starts at 1
+        ranks = np.argsort(np.argsort(fitness)) + 1
         probs = ranks / np.sum(ranks)
-        selected_indices = np.random.choice(len(population), size=n_parents, replace=True, p=probs)
+        selected_indices = self.rng.choice(len(population), size=n_parents, replace=True, p=probs)
         return Population([population[i] for i in selected_indices])
 
 
@@ -100,7 +108,8 @@ class TournamentSelection(SelectionStrategy):
     Randomly select k individuals and pick the one with highest fitness.
     """
 
-    def __init__(self, k: int = 3):
+    def __init__(self, k: int = 3, rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
         self.k = k
 
     def select(self, population: Population, n_parents: int) -> Population:
@@ -111,7 +120,7 @@ class TournamentSelection(SelectionStrategy):
             raise ValueError("k must be <= population size")
         selected: list[Individual] = []
         for _ in range(n_parents):
-            contender_indices = np.random.choice(len(population), size=self.k, replace=False)
+            contender_indices = self.rng.choice(len(population), size=self.k, replace=False)
             contenders = [population[i] for i in contender_indices]
             winner = max(contenders, key=lambda ind: ind.fitness)
             selected.append(winner)
@@ -124,7 +133,8 @@ class TruncationSelection(SelectionStrategy):
     Select only from the top fraction of the population.
     """
 
-    def __init__(self, fraction: float = 0.5):
+    def __init__(self, fraction: float = 0.5, rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
         self.fraction = fraction
 
     def select(self, population: Population, n_parents: int) -> Population:
@@ -134,7 +144,7 @@ class TruncationSelection(SelectionStrategy):
         sorted_pop = sorted(population, key=lambda ind: ind.fitness, reverse=True)
         cutoff = int(len(sorted_pop) * self.fraction)
         top = sorted_pop[: max(1, cutoff)]
-        chosen_indices = np.random.choice(len(top), size=n_parents, replace=True)
+        chosen_indices = self.rng.choice(len(top), size=n_parents, replace=True)
         chosen = [top[i] for i in chosen_indices]
         return Population(chosen)
 
@@ -146,7 +156,8 @@ class BoltzmannSelection(SelectionStrategy):
     Higher temperature = more exploration.
     """
 
-    def __init__(self, temperature: float = 1.0):
+    def __init__(self, temperature: float = 1.0, rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
         self.temperature = temperature
 
     def select(self, population: Population, n_parents: int) -> Population:
@@ -154,11 +165,10 @@ class BoltzmannSelection(SelectionStrategy):
         if self.temperature <= 0:
             raise ValueError("temperature must be > 0")
         fitness = np.array([ind.fitness for ind in population], dtype=float)
-        # Numerical stabilization
         shifted = fitness - fitness.max()
         scaled = np.exp(shifted / (self.temperature + 1e-8))
         probs = scaled / np.sum(scaled)
-        selected_indices = np.random.choice(len(population), size=n_parents, replace=True, p=probs)
+        selected_indices = self.rng.choice(len(population), size=n_parents, replace=True, p=probs)
         return Population([population[i] for i in selected_indices])
 
 
@@ -181,7 +191,9 @@ class FitnessSharingSelection(SelectionStrategy):
         *,
         distance_metric: str = "fitness",
         normalize_distances: bool = False,
+        rng: np.random.Generator | None = None,
     ) -> None:
+        super().__init__(rng=rng)
         self.sigma_share = sigma_share
         self.distance_metric = distance_metric
         self.normalize_distances = normalize_distances
@@ -212,7 +224,7 @@ class FitnessSharingSelection(SelectionStrategy):
         shared_fitness = raw_fitness / niche_counts
         shared_fitness = np.maximum(shared_fitness, 1e-12)
         probs = shared_fitness / np.sum(shared_fitness)
-        selected_indices = np.random.choice(n, size=n_parents, replace=True, p=probs)
+        selected_indices = self.rng.choice(n, size=n_parents, replace=True, p=probs)
         return Population([population[i] for i in selected_indices])
 
 
@@ -224,7 +236,7 @@ class RandomSelection(SelectionStrategy):
 
     def select(self, population: Population, n_parents: int) -> Population:
         self._validate(population, n_parents)
-        chosen_indices = np.random.choice(len(population), size=n_parents, replace=True)
+        chosen_indices = self.rng.choice(len(population), size=n_parents, replace=True)
         chosen = [population[i] for i in chosen_indices]
         return Population(chosen)
 
@@ -235,7 +247,8 @@ class Elitism(SelectionStrategy):
     Always preserves the top `elite_size` individuals.
     """
 
-    def __init__(self, elite_size: int = 1):
+    def __init__(self, elite_size: int = 1, rng: np.random.Generator | None = None):
+        super().__init__(rng=rng)
         self.elite_size = elite_size
 
     def select(self, population: Population, n_parents: int | None = None) -> Population:
