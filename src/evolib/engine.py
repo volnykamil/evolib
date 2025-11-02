@@ -39,6 +39,7 @@ class GAConfig:
     seed: int | None = None
     checkpoint_path: Path | None = None
     checkpoint_interval_seconds: int | None = None
+    max_history: int | None = None  # limit number of stored history snapshots (None = unlimited)
 
     def __post_init__(self) -> None:
         """Validate configuration parameters early to fail fast.
@@ -324,6 +325,12 @@ class GAEngine:
             "time": time.time(),
         }
         self.stats.history.append(snapshot)
+        # Enforce history cap if configured
+        if self.config.max_history is not None and self.config.max_history >= 0:
+            excess = len(self.stats.history) - self.config.max_history
+            if excess > 0:
+                # drop oldest entries
+                del self.stats.history[:excess]
         self.logger.info(
             "Generation %d stats: best=%s mean=%s evals=%d",
             self.generation,
