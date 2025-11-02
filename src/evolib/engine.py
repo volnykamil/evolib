@@ -40,6 +40,10 @@ class GAConfig:
     checkpoint_path: Path | None = None
     checkpoint_interval_seconds: int | None = None
     max_history: int | None = None  # limit number of stored history snapshots (None = unlimited)
+    # Optional lifecycle callbacks
+    on_generation_start: Callable[[int, Population], None] | None = None
+    on_generation_end: Callable[[GAStats, Population], None] | None = None
+    on_evaluation_error: Callable[[Individual, Exception], None] | None = None
 
     def __post_init__(self) -> None:
         """Validate configuration parameters early to fail fast.
@@ -171,6 +175,12 @@ class GAEngine:
                 and not self._stop_requested.is_set()
             ):
                 self.logger.info("Generation %d start", self.generation)
+                # Hook: generation start
+                if self.config.on_generation_start is not None:
+                    try:
+                        self.config.on_generation_start(self.generation, self.population)
+                    except Exception:  # pragma: no cover - defensive
+                        self.logger.exception("on_generation_start callback failed")
                 self._evaluate_population_parallel()
                 self._update_stats()
 
@@ -187,6 +197,12 @@ class GAEngine:
                 self.generation += 1
                 self.stats.generation = self.generation
                 self._checkpoint_if_needed()
+                # Hook: generation end
+                if self.config.on_generation_end is not None:
+                    try:
+                        self.config.on_generation_end(self.stats, self.population)
+                    except Exception:  # pragma: no cover - defensive
+                        self.logger.exception("on_generation_end callback failed")
 
             return self.population
         finally:
@@ -302,9 +318,14 @@ class GAEngine:
         for ind, res in zip(individuals, results, strict=False):
             try:
                 ind.fitness = float(res)
-            except Exception:
+            except Exception as ex:
                 ind.fitness = float("-inf")
                 self.logger.exception("Fitness evaluation error for one individual; setting -inf")
+                if self.config.on_evaluation_error is not None:
+                    try:
+                        self.config.on_evaluation_error(ind, ex)
+                    except Exception:  # pragma: no cover - defensive
+                        self.logger.exception("on_evaluation_error callback failed")
 
     def _update_stats(self) -> None:
         scores = [ind.fitness for ind in self.population if ind.fitness is not None and not math.isnan(ind.fitness)]
