@@ -274,8 +274,8 @@ def test_fitness_sharing_no_divide_by_zero():
     [
         lambda: GenerationalReplacement(),
         lambda: SteadyStateReplacement(num_replacements=2),
-        lambda: MuLambdaReplacement(mu=3, lambda_=5),
-        lambda: MuPlusLambdaReplacement(mu=3, lambda_=4),
+        lambda: MuLambdaReplacement(mu=3, lambda_=6),
+        lambda: MuPlusLambdaReplacement(mu=3, lambda_=6),
         lambda: ElitismReplacement(elite_size=1),
         lambda: AgeBasedReplacement(),
     ],
