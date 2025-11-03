@@ -5,14 +5,16 @@ import logging
 import math
 import os
 import pickle
-import random
 import threading
 import time
 from collections.abc import Callable
 from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor
 from dataclasses import dataclass, field
+from itertools import repeat
 from pathlib import Path
 from typing import Any, cast
+
+import numpy as np
 
 from evolib.core.individual import Individual, Population  # Population = NewType("Population", list[Individual])
 from evolib.core.termination import TerminationCondition
@@ -137,9 +139,12 @@ class GAEngine:
         self._stop_requested = threading.Event()
         self.logger = logger or logging.getLogger("evolib.gaengine")
         self.logger.setLevel(logging.INFO)
-
         # checkpoint management
         self._last_checkpoint = time.time()
+        # Internal RNG for engine-level stochastic decisions (crossover/mutation application)
+        # Seeded if config.seed provided for reproducibility.
+        seed = config.seed if config.seed is not None else None
+        self._rng = np.random.default_rng(seed)
 
     # -----------------------------
     # Public API
@@ -302,8 +307,8 @@ class GAEngine:
 
         try:
             if isinstance(self._executor, ProcessPoolExecutor):
-                # Submit Individuals directly using top-level helper for picklability
-                results = list(self._executor.map(lambda ind: _evaluate_individual(ind, evaluator), individuals))
+                # Submit Individuals using top-level helper for picklability (avoid lambdas)
+                results = list(self._executor.map(_evaluate_individual, individuals, repeat(evaluator)))
             elif isinstance(self._executor, ThreadPoolExecutor):
                 results = list(self._executor.map(evaluator, individuals))
             else:  # synchronous
@@ -385,16 +390,17 @@ class GAEngine:
         for i in range(0, len(parents_pool), 2):
             p1, p2 = parents_pool[i], parents_pool[i + 1]
 
-            if random.random() <= self.config.crossover_rate:
+            # Use engine RNG for reproducible crossover decision
+            if self._rng.random() <= self.config.crossover_rate:
                 child1_gen, child2_gen = self.crossover.crossover(p1.genotype, p2.genotype)
             else:
                 child1_gen = p1.genotype.copy()
                 child2_gen = p2.genotype.copy()
 
             # mutation per-child
-            if random.random() <= self.config.mutation_rate:
+            if self._rng.random() <= self.config.mutation_rate:
                 child1_gen = self.mutation.mutate(child1_gen)
-            if random.random() <= self.config.mutation_rate:
+            if self._rng.random() <= self.config.mutation_rate:
                 child2_gen = self.mutation.mutate(child2_gen)
 
             child1 = Individual(genotype=child1_gen, age=0, fitness=float("nan"))
